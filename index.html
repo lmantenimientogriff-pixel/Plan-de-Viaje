@@ -174,7 +174,7 @@
   }
 
   label{ display:block; font-size:12.5px; font-weight:700; color:var(--ink-soft); margin:0 0 6px; text-transform:uppercase; letter-spacing:.04em; }
-  input[type=text],input[type=password],input[type=number],select{
+  input[type=text],input[type=password],input[type=number],input[type=date],input[type=datetime-local],select{
     width:100%; padding:14px 14px; border:1.5px solid var(--line); border-radius:10px;
     font-size:16px; margin-bottom:14px; background:#fff; color:var(--ink);
     -webkit-appearance:none; appearance:none;
@@ -192,7 +192,18 @@
     background:#fff5f5;
     font-size:17px !important;
     font-weight:700;
-    padding:16px 14px !important;
+    padding:14px 14px !important;
+    display:flex;
+    align-items:center;
+  }
+  .campo-fecha-editable::-webkit-datetime-edit{ flex:1; }
+  .campo-fecha-editable::-webkit-calendar-picker-indicator{
+    background:var(--safety-orange);
+    border-radius:8px;
+    padding:7px;
+    cursor:pointer;
+    filter:invert(1) brightness(2);
+    margin-left:8px;
   }
   .hint-editable{
     font-size:12.5px;
