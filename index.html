@@ -969,6 +969,17 @@
 
     var totalValidosCumpl = cumplidos + demorados;
 
+    // ---- Cumplimiento de Parada de Descanso (conduccion continua <= 2:15 hs) ----
+    var candidatosParada = viajes.filter(function(v){ return v.requiereParada === 'SI'; });
+    var cumpleParada = 0, noCumpleParada = 0, pendienteParada = 0, incompletoParada = 0;
+    candidatosParada.forEach(function(v){
+      if(v.cumplimientoParada === 'CUMPLE') cumpleParada++;
+      else if(v.cumplimientoParada === 'NO CUMPLE') noCumpleParada++;
+      else if(v.cumplimientoParada === 'PENDIENTE') pendienteParada++;
+      else incompletoParada++;
+    });
+    var totalValidosParada = cumpleParada + noCumpleParada;
+
     var analisisPilares = DEFINICION_PILARES.map(function(p){
       var valores = viajes.map(function(v){ return Number(v[p.key]); }).filter(function(n){ return !isNaN(n); });
       var promedio = valores.length ? (valores.reduce(function(a,b){ return a+b; },0) / valores.length) : 0;
@@ -990,6 +1001,11 @@
       incompletos: incompletos,
       totalValidosCumpl: totalValidosCumpl,
       detalleFinalizados: detalleFinalizados,
+      cumpleParada: cumpleParada,
+      noCumpleParada: noCumpleParada,
+      pendienteParada: pendienteParada,
+      incompletoParada: incompletoParada,
+      totalValidosParada: totalValidosParada,
       analisisPilares: analisisPilares
     };
   }
@@ -1066,6 +1082,32 @@
         html += '<div class="delay-row"><span>' + f.nombre + ' (Viaje N° ' + f.serial + ')</span><span style="font-weight:700;color:' + color + ';">' + detalle + '</span></div>';
       });
       html += '</div>';
+    }
+    html += '</div>';
+
+    // ---- Cumplimiento de Parada de Descanso (conduccion continua) ----
+    var pctCumpleParada = d.totalValidosParada ? (d.cumpleParada / d.totalValidosParada * 100) : 0;
+    var pctNoCumpleParada = d.totalValidosParada ? (d.noCumpleParada / d.totalValidosParada * 100) : 0;
+
+    html += '<div class="card"><h2>Cumplimiento de Parada de Descanso</h2><p>Viajes con tramo mayor a 2:15 hs. Compara el inicio del viaje contra el momento en que se confirmó la parada.</p>';
+
+    if(d.totalValidosParada === 0){
+      html += '<div class="empty">Todavía no hay paradas de descanso confirmadas para calcular este indicador.</div>';
+    } else {
+      var gradienteParada = 'conic-gradient(var(--riesgo-bajo) 0% ' + pctCumpleParada + '%, var(--riesgo-critico) ' + pctCumpleParada + '% 100%)';
+      html += '<div class="pie-wrap">' +
+        '<div class="pie" style="background:' + gradienteParada + ';"></div>' +
+        '<div class="legend">' +
+        '<div class="legend-item"><span class="legend-dot" style="background:var(--riesgo-bajo);"></span><span class="legend-txt">Cumple</span><span class="legend-num">' + d.cumpleParada + ' (' + pctCumpleParada.toFixed(0) + '%)</span></div>' +
+        '<div class="legend-item"><span class="legend-dot" style="background:var(--riesgo-critico);"></span><span class="legend-txt">No cumple</span><span class="legend-num">' + d.noCumpleParada + ' (' + pctNoCumpleParada.toFixed(0) + '%)</span></div>' +
+        '</div></div>';
+    }
+
+    var notasParada = [];
+    if(d.pendienteParada > 0) notasParada.push(d.pendienteParada + ' pendiente(s) de confirmar');
+    if(d.incompletoParada > 0) notasParada.push(d.incompletoParada + ' con dato incompleto');
+    if(notasParada.length){
+      html += '<p style="margin:14px 0 0;font-size:12px;color:var(--ink-soft);">ℹ️ ' + notasParada.join(' · ') + ' — no se incluyen en el % de cumplimiento.</p>';
     }
     html += '</div>';
 
@@ -1456,6 +1498,32 @@
 
     y = yLeyenda + 46;
     doc.setTextColor(0,0,0);
+
+    // ---- Cumplimiento de Parada de Descanso ----
+    if(d.totalValidosParada > 0){
+      if(y > 620){ doc.addPage(); y = 40; }
+      doc.setFontSize(12);
+      doc.setFont(undefined, 'bold');
+      doc.setTextColor(colorGraphite[0], colorGraphite[1], colorGraphite[2]);
+      doc.text('Cumplimiento de Parada de Descanso', margin, y);
+
+      var yPieParada = y + 12;
+      var pctCumpleParadaPdf = d.cumpleParada / d.totalValidosParada * 100;
+      var imgParada = crearImagenTorta([
+        { valor: d.cumpleParada, color: '#1D9E75' },
+        { valor: d.noCumpleParada, color: '#C00000' }
+      ]);
+      doc.addImage(imgParada, 'PNG', margin, yPieParada, pieSizePt, pieSizePt);
+
+      var yLeyendaParada = yPieParada;
+      doc.setFontSize(9);
+      doc.setFont(undefined, 'normal');
+      dibujarItemLeyenda(doc, margin + pieSizePt + 20, yLeyendaParada + 10, '#1D9E75', 'Cumple: ' + d.cumpleParada + ' (' + pctCumpleParadaPdf.toFixed(0) + '%)');
+      dibujarItemLeyenda(doc, margin + pieSizePt + 20, yLeyendaParada + 24, '#C00000', 'No cumple: ' + d.noCumpleParada + ' (' + (100-pctCumpleParadaPdf).toFixed(0) + '%)');
+
+      y = yPieParada + pieSizePt + 24;
+      doc.setTextColor(0,0,0);
+    }
 
     // ---- Detalle de viajes finalizados ----
     doc.setFontSize(9);
