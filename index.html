@@ -187,6 +187,23 @@
   }
   input:focus,select:focus{ outline:none; border-color:var(--safety-orange); }
 
+  .campo-fecha-editable{
+    border:2px solid var(--safety-orange) !important;
+    background:#fff5f5;
+    font-size:17px !important;
+    font-weight:700;
+    padding:16px 14px !important;
+  }
+  .hint-editable{
+    font-size:12.5px;
+    color:var(--safety-orange-dark);
+    margin:-8px 0 16px;
+    display:flex;
+    align-items:center;
+    gap:6px;
+    font-weight:600;
+  }
+
   .badge{
     display:inline-block; font-size:11px; font-weight:800; letter-spacing:.03em;
     padding:5px 10px; border-radius:20px; text-transform:uppercase; flex:none;
@@ -658,14 +675,16 @@
     if(v.estadoViaje === 'FINALIZADO'){
       html += '<div class="card status-banner status-ok" style="margin-bottom:0;">✓ Este viaje ya fue finalizado.</div>';
     } else if(v.estadoViaje === 'INICIADO' && v.requiereParada === 'SI'){
-      html += '<div class="card"><h2>Parada de descanso</h2><p>Confirmá cuándo hiciste la parada de descanso en el tramo mayor a 2:15 hs. Podés ajustar la fecha y hora si no es en este momento.</p>' +
+      html += '<div class="card"><h2>Parada de descanso</h2><p>Confirmá cuándo hiciste la parada de descanso en el tramo mayor a 2:15 hs.</p>' +
               '<label>Fecha y hora de la parada</label>' +
-              '<input type="datetime-local" id="fechaParada" value="' + ahoraParaInput() + '">' +
+              '<input type="datetime-local" class="campo-fecha-editable" id="fechaParada" value="' + ahoraParaInput() + '">' +
+              '<p class="hint-editable">✏️ Ya viene con la hora de ahora — tocá el campo para cambiarla si confirmás más tarde</p>' +
               '<button class="btn btn-primary" onclick="accionViaje(\'confirmarParada\', document.getElementById(\'fechaParada\').value)" id="btnParada">Confirmar Parada de Descanso</button></div>';
     } else {
-      html += '<div class="card"><h2>Fin del viaje</h2><p>Confirmá cuándo llegaste a destino. Podés ajustar la fecha y hora si no es en este momento.</p>' +
+      html += '<div class="card"><h2>Fin del viaje</h2><p>Confirmá cuándo llegaste a destino.</p>' +
               '<label>Fecha y hora de finalización</label>' +
-              '<input type="datetime-local" id="fechaFin" value="' + ahoraParaInput() + '">' +
+              '<input type="datetime-local" class="campo-fecha-editable" id="fechaFin" value="' + ahoraParaInput() + '">' +
+              '<p class="hint-editable">✏️ Ya viene con la hora de ahora — tocá el campo para cambiarla si confirmás más tarde</p>' +
               '<button class="btn btn-secondary" onclick="confirmarFin()" id="btnFinalizar">Finalizar Viaje</button>' +
               '<div id="confirmFinBox"></div></div>';
     }
