@@ -536,6 +536,17 @@
     return '<span class="badge ' + cls + '">' + estado + '</span>';
   }
 
+  // Texto y color para el indicador de cumplimiento de conduccion continua (parada <= 2:15 hs desde el inicio)
+  function textoCumplimientoParada(v){
+    switch(v.cumplimientoParada){
+      case 'CUMPLE': return { texto: 'Parada dentro de las 2:15 hs de conducción continua', color: 'var(--riesgo-bajo)', icono: '✅' };
+      case 'NO CUMPLE': return { texto: 'Se superó el límite de 2:15 hs de conducción continua', color: 'var(--riesgo-critico)', icono: '⚠️' };
+      case 'PENDIENTE': return { texto: 'Pendiente de confirmar la parada de descanso', color: 'var(--riesgo-medio)', icono: '⏳' };
+      case 'DATO INCOMPLETO': return { texto: 'Dato incompleto para calcular el cumplimiento', color: 'var(--ink-soft)', icono: 'ℹ️' };
+      default: return null; // NO APLICA
+    }
+  }
+
   function formatoFecha(valor){
     if(!valor) return '—';
     try{
@@ -666,6 +677,11 @@
       }
     }
 
+    var cumplParada = textoCumplimientoParada(v);
+    if(cumplParada){
+      html += '<div class="status-banner" style="background:' + cumplParada.color + '18;color:' + cumplParada.color + ';">' + cumplParada.icono + ' ' + cumplParada.texto + '</div>';
+    }
+
     html += '<div class="kv"><span class="k">Fecha de inicio</span><span class="v">' + formatoFecha(v.inicioViaje) + '</span></div>';
     html += '<div class="kv"><span class="k">Origen</span><span class="v">' + (v.origen||'—') + '</span></div>';
     html += '<div class="kv"><span class="k">Destino</span><span class="v">' + (v.destino||'—') + '</span></div>';
@@ -771,6 +787,7 @@
       '<div class="kv"><span class="k">Tractor / Semi</span><span class="v">' + (v.tractorPatente||'—') + ' / ' + (v.semiPatente||'—') + '</span></div>' +
       '<div class="kv"><span class="k">Tiempo estimado de viaje</span><span class="v">' + (v.horasEstimadas ? v.horasEstimadas + ' hs' : '—') + '</span></div>' +
       '<div class="kv"><span class="k">Parada de descanso planificada</span><span class="v">' + paradaTxt + '</span></div>' +
+      (textoCumplimientoParada(v) ? '<div class="kv"><span class="k">Conducción continua</span><span class="v" style="color:' + textoCumplimientoParada(v).color + ';">' + textoCumplimientoParada(v).icono + ' ' + textoCumplimientoParada(v).texto + '</span></div>' : '') +
       '<div class="kv"><span class="k">Puntaje de riesgo</span><span class="v">' + v.nivelRiesgoPuntos + ' pts</span></div>' +
       '<div class="kv"><span class="k">Autoriza</span><span class="v">' + v.rolAutoriza + '</span></div>' +
       '<button class="btn btn-ghost btn-sm" style="width:100%;margin-top:12px;" onclick="document.getElementById(\'' + motivoId + '\').classList.toggle(\'show\')">Ver motivo del riesgo ▾</button>' +
@@ -1210,7 +1227,8 @@
         '<div class="kv"><span class="k">Fin real</span><span class="v">' + formatoFecha(v.fechaFinReal) + '</span></div>' +
         '<div class="kv"><span class="k">Cumplimiento</span><span class="v" style="color:' + cumplimiento.color + ';">' + cumplimiento.texto + '</span></div>' +
         '<div class="kv"><span class="k">Puntaje total</span><span class="v">' + (v.nivelRiesgoPuntos || '—') + ' pts</span></div>' +
-        '<div class="kv"><span class="k">Autorización</span><span class="v" style="color:' + autorizacion.color + ';">' + autorizacion.texto + '</span></div>';
+        '<div class="kv"><span class="k">Autorización</span><span class="v" style="color:' + autorizacion.color + ';">' + autorizacion.texto + '</span></div>' +
+        (textoCumplimientoParada(v) ? '<div class="kv"><span class="k">Conducción continua</span><span class="v" style="color:' + textoCumplimientoParada(v).color + ';">' + textoCumplimientoParada(v).icono + ' ' + textoCumplimientoParada(v).texto + '</span></div>' : '');
 
       if(pendienteAuth){
         htmlMobile += '<div class="btn-row" style="margin-top:10px;">' +
@@ -1240,7 +1258,9 @@
       var estadoCorto = v.estadoViaje === 'PARADA CONFIRMADA' ? 'PARADA' : v.estadoViaje;
       var pendienteAuth = v.requiereAutorizacion && v.estadoAutorizacion === 'PENDIENTE';
 
-      var contenidoDetalle = '<div class="pilares-grid">' + htmlPilaresBarras(v) + '</div>';
+      var infoParada = textoCumplimientoParada(v);
+      var contenidoDetalle = (infoParada ? '<p style="margin:0 0 14px;font-size:13px;font-weight:600;color:' + infoParada.color + ';">' + infoParada.icono + ' ' + infoParada.texto + '</p>' : '') +
+        '<div class="pilares-grid">' + htmlPilaresBarras(v) + '</div>';
       if(pendienteAuth){
         contenidoDetalle += '<div style="margin-top:16px;padding-top:16px;border-top:1px dashed var(--line);">' +
           '<p style="font-weight:700;font-size:12px;color:var(--ink-soft);text-transform:uppercase;margin:0 0 10px;">Autorizar este viaje (' + v.rolAutoriza + ')</p>' +
