@@ -757,13 +757,24 @@
 
   function renderCardPendiente(v){
     var formId = 'form-' + v.serial;
+    var motivoId = 'motivo-' + v.serial;
+    var paradaTxt = v.requiereParada === 'SI'
+      ? ('Sí' + (v.lugarParada ? ' — ' + v.lugarParada : ''))
+      : (v.requiereParada || 'No');
+
     return '<div class="card">' +
       '<div class="trip-header"><div><div class="name">' + v.conductorNombre + '</div>' +
       '<div class="id">Viaje N° ' + v.serial + '</div></div>' + badgeRiesgo(v.nivelRiesgoEstado) + '</div>' +
+      '<div class="kv"><span class="k">Fecha de inicio</span><span class="v">' + formatoFecha(v.inicioViaje) + '</span></div>' +
       '<div class="kv"><span class="k">Origen → Destino</span><span class="v">' + (v.origen||'—') + ' → ' + (v.destino||'—') + '</span></div>' +
       '<div class="kv"><span class="k">Cliente</span><span class="v">' + (v.cliente||'—') + '</span></div>' +
+      '<div class="kv"><span class="k">Tractor / Semi</span><span class="v">' + (v.tractorPatente||'—') + ' / ' + (v.semiPatente||'—') + '</span></div>' +
+      '<div class="kv"><span class="k">Tiempo estimado de viaje</span><span class="v">' + (v.horasEstimadas ? v.horasEstimadas + ' hs' : '—') + '</span></div>' +
+      '<div class="kv"><span class="k">Parada de descanso planificada</span><span class="v">' + paradaTxt + '</span></div>' +
       '<div class="kv"><span class="k">Puntaje de riesgo</span><span class="v">' + v.nivelRiesgoPuntos + ' pts</span></div>' +
       '<div class="kv"><span class="k">Autoriza</span><span class="v">' + v.rolAutoriza + '</span></div>' +
+      '<button class="btn btn-ghost btn-sm" style="width:100%;margin-top:12px;" onclick="document.getElementById(\'' + motivoId + '\').classList.toggle(\'show\')">Ver motivo del riesgo ▾</button>' +
+      '<div class="approve-form" id="' + motivoId + '">' + htmlPilaresBarras(v) + '</div>' +
       '<div class="btn-row" style="margin-top:14px;">' +
       '<button class="btn btn-err btn-sm" onclick="toggleAprobar(\'' + formId + '\',\'RECHAZADO\')">Rechazar</button>' +
       '<button class="btn btn-ok btn-sm" onclick="toggleAprobar(\'' + formId + '\',\'APROBADO\')">Autorizar</button>' +
