@@ -1,0 +1,1463 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Plan de Viaje | Griffouliere</title>
+<style>
+  :root{
+    --graphite:#1a1a1a;
+    --graphite-2:#262626;
+    --steel:#3a424f;
+    --safety-orange:#C00000;
+    --safety-orange-dark:#960000;
+    --riesgo-bajo:#1D9E75;
+    --riesgo-bajo-bg:#e3f6ef;
+    --riesgo-medio:#EF9F27;
+    --riesgo-medio-bg:#fdf1de;
+    --riesgo-critico:#C00000;
+    --riesgo-critico-bg:#fbe6e6;
+    --paper:#f4f5f7;
+    --ink:#1a1a1a;
+    --ink-soft:#6b7280;
+    --line:#e0e2e8;
+    --ok:#1D9E75;
+    --err:#C00000;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{ margin:0; padding:0; }
+  body{
+    font-family:Calibri,"Segoe UI",-apple-system,BlinkMacSystemFont,Roboto,Arial,sans-serif;
+    background:var(--paper);
+    color:var(--ink);
+    min-height:100vh;
+  }
+
+  header{
+    background:var(--graphite);
+    color:#fff;
+    padding:0 18px;
+    height:52px;
+    display:flex;
+    align-items:center;
+    box-shadow:0 2px 8px rgba(0,0,0,.3);
+    position:sticky;
+    top:0;
+    z-index:20;
+  }
+  .header-inner{
+    max-width:520px;
+    margin:0 auto;
+    width:100%;
+    display:flex;
+    align-items:center;
+    gap:14px;
+  }
+  .back-btn{
+    background:rgba(255,255,255,.1);
+    border:none;
+    color:#fff;
+    width:32px;height:32px;
+    border-radius:8px;
+    font-size:17px;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    flex:none;
+    transition:border-color .15s;
+  }
+  .back-btn.show{ display:flex; }
+  .back-btn:hover{ background:rgba(255,255,255,.18); }
+  .header-text{ flex:1; min-width:0; display:flex; align-items:center; gap:12px; }
+  .brand-badge{
+    font-size:10.5px;
+    letter-spacing:2.5px;
+    text-transform:uppercase;
+    color:#fff;
+    background:var(--safety-orange);
+    padding:3px 8px;
+    border-radius:2px;
+    font-weight:700;
+    flex:none;
+  }
+  .header-title{
+    color:#fff;
+    font-size:15px;
+    font-weight:600;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+
+  main{
+    max-width:520px;
+    width:100%;
+    margin:0 auto;
+    padding:20px 18px 50px;
+  }
+
+  .view{ display:none; }
+  .view.active{ display:block; animation:fade .18s ease; }
+  @keyframes fade{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);} }
+
+  .card{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:20px;
+    margin-bottom:14px;
+    box-shadow:0 1px 2px rgba(28,33,40,.04);
+  }
+  .card h2{
+    font-size:16px;
+    margin:0 0 6px;
+    font-weight:700;
+  }
+  .card p{
+    font-size:13.5px;
+    line-height:1.5;
+    color:var(--ink-soft);
+    margin:0 0 14px;
+  }
+
+  .btn{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    width:100%;
+    padding:15px 18px;
+    border-radius:10px;
+    font-size:15px;
+    font-weight:700;
+    text-decoration:none;
+    border:none;
+    cursor:pointer;
+    transition:transform .08s ease, opacity .15s ease;
+    -webkit-appearance:none;
+    appearance:none;
+  }
+  .btn:active{ transform:scale(.98); }
+  .btn:disabled{ opacity:.5; cursor:not-allowed; }
+  .btn-primary{ background:var(--safety-orange); color:#fff; }
+  .btn-primary:hover{ background:var(--safety-orange-dark); }
+  .btn-secondary{ background:var(--graphite); color:#fff; }
+  .btn-ok{ background:var(--ok); color:#fff; }
+  .btn-err{ background:var(--err); color:#fff; }
+  .btn-ghost{ background:#fff; color:var(--ink); border:1.5px solid var(--line); }
+  .btn-sm{ padding:11px 14px; font-size:13.5px; width:auto; }
+  .btn-row{ display:flex; gap:10px; }
+  .btn-row .btn{ flex:1; }
+  .preset-row{ flex-wrap:wrap; margin-bottom:14px; }
+  .preset-row .btn{ flex:1 1 calc(50% - 5px); }
+
+  .semaforo{ display:flex; gap:6px; margin-top:14px; }
+  .semaforo div{
+    flex:1; text-align:center; font-size:10px; font-weight:700;
+    color:#fff; padding:6px 4px; border-radius:6px; letter-spacing:.02em;
+  }
+  .semaforo .b{ background:var(--riesgo-bajo); }
+  .semaforo .m{ background:var(--riesgo-medio); }
+  .semaforo .c{ background:var(--riesgo-critico); }
+
+  .divider{
+    display:flex; align-items:center; gap:10px; margin:22px 0;
+    color:var(--ink-soft); font-size:11px; font-weight:700;
+    text-transform:uppercase; letter-spacing:.08em;
+  }
+  .divider::before,.divider::after{ content:""; flex:1; height:1px; background:var(--line); }
+
+  .link-row{
+    display:block; text-align:center; font-size:13px; color:var(--ink-soft);
+    text-decoration:none; padding:12px; font-weight:600; cursor:pointer;
+  }
+
+  label{ display:block; font-size:12.5px; font-weight:700; color:var(--ink-soft); margin:0 0 6px; text-transform:uppercase; letter-spacing:.04em; }
+  input[type=text],input[type=password],input[type=number],select{
+    width:100%; padding:14px 14px; border:1.5px solid var(--line); border-radius:10px;
+    font-size:16px; margin-bottom:14px; background:#fff; color:var(--ink);
+    -webkit-appearance:none; appearance:none;
+  }
+  select{
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='9'><path d='M1 1l6 6 6-6' stroke='%236b7280' stroke-width='2' fill='none' fill-rule='evenodd'/></svg>");
+    background-repeat:no-repeat;
+    background-position:right 14px center;
+    padding-right:36px;
+  }
+  input:focus,select:focus{ outline:none; border-color:var(--safety-orange); }
+
+  .badge{
+    display:inline-block; font-size:11px; font-weight:800; letter-spacing:.03em;
+    padding:5px 10px; border-radius:20px; text-transform:uppercase; flex:none;
+  }
+  .badge-bajo{ background:var(--riesgo-bajo-bg); color:var(--riesgo-bajo); }
+  .badge-medio{ background:var(--riesgo-medio-bg); color:var(--riesgo-medio); }
+  .badge-critico{ background:var(--riesgo-critico-bg); color:var(--riesgo-critico); }
+  .badge-neutral{ background:#eef0f3; color:var(--ink-soft); }
+
+  .trip-header{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:12px; }
+  .trip-header .name{ font-size:17px; font-weight:800; }
+  .trip-header .id{ font-size:12px; color:var(--ink-soft); }
+
+  .kv{ display:flex; justify-content:space-between; gap:10px; padding:9px 0; border-bottom:1px solid var(--line); font-size:13.5px; }
+  .kv:last-child{ border-bottom:none; }
+  .kv .k{ color:var(--ink-soft); flex:none; }
+  .kv .v{ font-weight:600; text-align:right; }
+
+  .status-banner{
+    display:flex; align-items:center; gap:10px; padding:12px 14px; border-radius:10px;
+    font-size:13.5px; font-weight:600; margin-bottom:16px;
+  }
+  .status-ok{ background:var(--riesgo-bajo-bg); color:var(--riesgo-bajo); }
+  .status-pend{ background:var(--riesgo-medio-bg); color:var(--riesgo-medio); }
+
+  .toast{
+    position:fixed; left:18px; right:18px; bottom:18px; max-width:484px; margin:0 auto;
+    padding:14px 16px; border-radius:10px; color:#fff; font-size:14px; font-weight:600;
+    z-index:100; opacity:0; transform:translateY(10px); transition:all .2s ease; pointer-events:none;
+  }
+  .toast.show{ opacity:1; transform:translateY(0); }
+  .toast.ok{ background:var(--ok); }
+  .toast.err{ background:var(--err); }
+
+  .spinner{
+    width:18px; height:18px; border-radius:50%;
+    border:2.5px solid rgba(255,255,255,.4); border-top-color:#fff;
+    animation:spin .7s linear infinite; display:inline-block;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+
+  .empty{ text-align:center; padding:30px 10px; color:var(--ink-soft); font-size:13.5px; }
+
+  .approve-form{ margin-top:12px; padding-top:12px; border-top:1px dashed var(--line); display:none; }
+  .approve-form.show{ display:block; }
+
+  /* --- Dashboard --- */
+  .kpi-row{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+  .kpi{ flex:1; background:#fff; border:1px solid var(--line); border-radius:14px; padding:16px 14px; text-align:center; }
+  .kpi .num{ font-size:26px; font-weight:800; color:var(--graphite); line-height:1.1; }
+  .kpi .lbl{ font-size:11px; color:var(--ink-soft); font-weight:700; text-transform:uppercase; letter-spacing:.03em; margin-top:4px; }
+
+  .bar-item{ margin-bottom:12px; }
+  .bar-item:last-child{ margin-bottom:0; }
+  .bar-item .bar-top{ display:flex; justify-content:space-between; font-size:13px; margin-bottom:5px; }
+  .bar-item .bar-top .nombre{ font-weight:600; }
+  .bar-item .bar-top .valor{ color:var(--ink-soft); font-weight:700; }
+  .bar-track{ background:#eef0f3; border-radius:6px; height:10px; overflow:hidden; }
+  .bar-fill{ height:100%; background:var(--safety-orange); border-radius:6px; }
+
+  .pie-wrap{ display:flex; align-items:center; gap:20px; }
+  .pie{ width:130px; height:130px; border-radius:50%; flex:none; }
+  .legend{ flex:1; }
+  .legend-item{ display:flex; align-items:center; gap:8px; font-size:13px; margin-bottom:8px; }
+  .legend-item:last-child{ margin-bottom:0; }
+  .legend-dot{ width:11px; height:11px; border-radius:50%; flex:none; }
+  .legend-item .legend-txt{ flex:1; color:var(--ink-soft); }
+  .legend-item .legend-num{ font-weight:700; color:var(--ink); }
+
+  .punt-compare{ display:flex; gap:10px; margin-bottom:14px; }
+  .punt-box{ flex:1; text-align:center; padding:14px 10px; border-radius:12px; }
+  .punt-box .num{ font-size:22px; font-weight:800; }
+  .punt-box .lbl{ font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.03em; margin-top:2px; }
+  .punt-ok{ background:var(--riesgo-bajo-bg); color:var(--riesgo-bajo); }
+  .punt-tarde{ background:var(--riesgo-critico-bg); color:var(--riesgo-critico); }
+
+  .delay-row{ display:flex; justify-content:space-between; font-size:13px; padding:8px 0; border-bottom:1px solid var(--line); }
+  .delay-row:last-child{ border-bottom:none; }
+
+  footer{ text-align:center; padding:16px; font-size:11px; color:var(--ink-soft); }
+
+  /* --- Listado general: cards en mobile, tabla en desktop --- */
+  .listado-mobile{ display:block; }
+  .listado-desktop{ display:none; }
+
+  .tabla-wrap{ overflow-x:auto; }
+  table.tabla-viajes{ width:100%; border-collapse:collapse; font-size:11.5px; }
+  table.tabla-viajes th{
+    background:var(--graphite); color:#fff; font-size:10px; text-transform:uppercase;
+    letter-spacing:.02em; padding:8px 8px; text-align:left; white-space:nowrap;
+  }
+  table.tabla-viajes td{ padding:8px 8px; border-bottom:1px solid var(--line); white-space:nowrap; vertical-align:top; }
+  table.tabla-viajes td.wrap-cell{ white-space:normal; max-width:150px; }
+  table.tabla-viajes tbody tr:hover{ background:#f8f9fb; }
+  table.tabla-viajes tr.fila-detalle{ display:none; }
+  table.tabla-viajes tr.fila-detalle.show{ display:table-row; }
+  table.tabla-viajes tr.fila-detalle td{ background:#f8f9fb; white-space:normal; padding:16px; }
+  .pilares-grid{ display:grid; grid-template-columns:repeat(3, 1fr); gap:4px 40px; width:100%; }
+
+  .approve-form-inline.show{ display:flex; flex-wrap:wrap; align-items:flex-end; gap:16px; }
+  .approve-form-inline .field-inline{ display:flex; flex-direction:column; }
+  .approve-form-inline .field-inline label{ margin-bottom:6px; }
+  .approve-form-inline .field-inline input,
+  .approve-form-inline .field-inline select{ width:220px; margin-bottom:0; }
+  .approve-form-inline > button{ width:auto; padding:14px 26px; }
+
+  @media (min-width: 900px){
+    main.wide{ max-width:1300px; }
+    .listado-mobile{ display:none; }
+    .listado-desktop{ display:block; }
+    .kpi-row{ grid-template-columns:repeat(4, 1fr); max-width:none; }
+    .pie-wrap{ max-width:600px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <button class="back-btn" id="backBtn" onclick="goHome()">‹</button>
+    <div class="header-text">
+      <span class="brand-badge">Griffouliere</span>
+      <span class="header-title" id="pageTitle">Plan de Viaje</span>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <!-- ================= VISTA HOME ================= -->
+  <div class="view active" id="view-home">
+
+    <div class="card">
+      <h2>1. Antes de salir</h2>
+      <p>Completá el Plan de Viaje: origen, destino, checklist del vehículo y condiciones. El nivel de riesgo se calcula solo.</p>
+      <a class="btn btn-primary" href="https://app.moreapp.com/form/6a0781f4d927e1cfddaa9358" target="_blank" rel="noopener">
+        Completar Plan de Viaje →
+      </a>
+      <div class="semaforo">
+        <div class="b">BAJO<br>9-16</div>
+        <div class="m">MEDIO<br>17-23</div>
+        <div class="c">CRÍTICO<br>24-35</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>2. Durante el viaje</h2>
+      <p>Buscá tu viaje por tu nombre para confirmar la parada de descanso y finalizar cuando llegues a destino.</p>
+      <button class="btn btn-secondary" onclick="goTo('view-mi-viaje')">Gestionar mi Viaje →</button>
+    </div>
+
+    <div class="card">
+      <h2>3. Autorización de viajes</h2>
+      <p>Si sos Supervisor o Líder de Operaciones, entrá acá para revisar y firmar los viajes en nivel MEDIO o CRÍTICO.</p>
+      <button class="btn btn-ghost" onclick="goTo('view-supervisor')">Panel de Autorizaciones →</button>
+    </div>
+
+    <div class="card">
+      <h2>4. Dashboard e indicadores</h2>
+      <p>Planes por chofer, distribución de riesgo y cumplimiento de horarios de llegada.</p>
+      <button class="btn btn-ghost" onclick="goTo('view-dashboard')">Ver Dashboard →</button>
+    </div>
+  </div>
+
+  <!-- ================= VISTA MI VIAJE ================= -->
+  <div class="view" id="view-mi-viaje">
+
+    <div class="card" id="buscarCard">
+      <label for="nombreInput">Tu nombre</label>
+      <select id="nombreInput">
+        <option value="" selected disabled>Cargando conductores...</option>
+      </select>
+      <button class="btn btn-primary" id="btnBuscar" onclick="buscarViaje()">Buscar mi viaje</button>
+    </div>
+
+    <div id="resultadoViaje"></div>
+  </div>
+
+  <!-- ================= VISTA SUPERVISOR ================= -->
+  <div class="view" id="view-supervisor">
+    <div class="card">
+      <h2>Autorizaciones pendientes</h2>
+      <p>Viajes en nivel MEDIO o CRÍTICO que requieren tu firma para continuar.</p>
+      <button class="btn btn-ghost btn-sm" onclick="cargarPendientes()">↻ Actualizar lista</button>
+    </div>
+    <div id="listaPendientes"></div>
+  </div>
+
+  <!-- ================= VISTA DASHBOARD ================= -->
+  <div class="view" id="view-dashboard">
+    <div class="card">
+      <h2>Dashboard de Gestión</h2>
+      <p>Indicadores generales de los Planes de Viaje cargados. Filtrá por fecha de inicio del viaje.</p>
+
+      <div class="btn-row">
+        <div style="flex:1;"><label for="filtroDesde">Desde</label><input type="date" id="filtroDesde"></div>
+        <div style="flex:1;"><label for="filtroHasta">Hasta</label><input type="date" id="filtroHasta"></div>
+      </div>
+
+      <div class="btn-row preset-row">
+        <button class="btn btn-ghost btn-sm" onclick="setPresetFiltro('hoy')">Hoy</button>
+        <button class="btn btn-ghost btn-sm" onclick="setPresetFiltro('semana')">7 días</button>
+        <button class="btn btn-ghost btn-sm" onclick="setPresetFiltro('mes')">Este mes</button>
+        <button class="btn btn-ghost btn-sm" onclick="setPresetFiltro('todo')">Todo</button>
+      </div>
+
+      <button class="btn btn-secondary" onclick="aplicarFiltroDashboard()">Aplicar filtro</button>
+      <button class="btn btn-primary" style="margin-top:10px;" onclick="generarPDF()">📄 Generar PDF para cliente</button>
+      <button class="btn btn-ghost btn-sm" style="margin-top:10px;" onclick="cargarDashboard()">↻ Actualizar datos del Sheet</button>
+    </div>
+    <div id="dashboardContenido"></div>
+  </div>
+
+</main>
+
+<footer>Sistema de Gestión Integrado &middot; Griffouliere S.A.</footer>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
+<script>
+  // =====================================================================
+  // CONFIG
+  // =====================================================================
+  var CONFIG = {
+    API_URL: 'https://script.google.com/macros/s/AKfycbzSJjf_58O1RCoM3IrXdvVnA13skOIx9KlPNw9oCxDD8MlzET7YZkKH-o66JvUQovhg/exec'
+  };
+
+  var currentViaje = null;
+  var viajesActivos = [];
+  var conductorActual = '';
+  var aprobadoresCache = null;
+
+  function obtenerAprobadores(){
+    if(aprobadoresCache) return Promise.resolve(aprobadoresCache);
+    return apiGet({ action:'listarAprobadores' }).then(function(res){
+      aprobadoresCache = res.ok ? res.aprobadores : [];
+      return aprobadoresCache;
+    }).catch(function(){ aprobadoresCache = []; return aprobadoresCache; });
+  }
+
+  function normalizarTexto(txt){
+    return String(txt || '').trim().toUpperCase()
+      .replace(/Á/g,'A').replace(/É/g,'E').replace(/Í/g,'I').replace(/Ó/g,'O').replace(/Ú/g,'U');
+  }
+
+  // Arma el <select> de aprobadores, filtrado por el rol que corresponde autorizar ese viaje
+  function selectAprobadores(formId, rolRequerido){
+    var opciones = aprobadoresCache.filter(function(a){
+      return normalizarTexto(a.rol) === normalizarTexto(rolRequerido);
+    });
+    if(!opciones.length) opciones = aprobadoresCache; // si no hay coincidencia de rol, mostramos todos
+
+    var html = '<select id="' + formId + '-nombre">';
+    if(!opciones.length){
+      html += '<option value="" selected disabled>No hay aprobadores cargados</option>';
+    } else {
+      html += '<option value="" selected disabled>Seleccioná tu nombre</option>';
+      opciones.forEach(function(a){
+        var etiqueta = a.rol ? (a.nombre + ' — ' + a.rol) : a.nombre;
+        html += '<option value="' + a.nombre.replace(/"/g,'&quot;') + '">' + etiqueta + '</option>';
+      });
+    }
+    html += '</select>';
+    return html;
+  }
+
+  // =====================================================================
+  // NAVEGACION INTERNA (sin recargar ni cambiar de pagina)
+  // =====================================================================
+  function goTo(viewId){
+    document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
+    document.getElementById(viewId).classList.add('active');
+    document.querySelector('main').classList.remove('wide');
+
+    var back = document.getElementById('backBtn');
+    var title = document.getElementById('pageTitle');
+
+    if(viewId === 'view-home'){
+      back.classList.remove('show');
+      title.textContent = 'Plan de Viaje';
+    } else if(viewId === 'view-mi-viaje'){
+      back.classList.add('show');
+      title.textContent = 'Mi Viaje';
+      cargarConductores();
+    } else if(viewId === 'view-supervisor'){
+      back.classList.add('show');
+      title.textContent = 'Autorizaciones';
+      cargarPendientes();
+    } else if(viewId === 'view-dashboard'){
+      back.classList.add('show');
+      title.textContent = 'Dashboard';
+      document.querySelector('main').classList.add('wide');
+      cargarDashboard();
+    }
+    window.scrollTo(0,0);
+  }
+  function goHome(){ goTo('view-home'); }
+
+  // =====================================================================
+  // HELPERS
+  // =====================================================================
+  function apiGet(params){
+    var url = CONFIG.API_URL + '?' + new URLSearchParams(params).toString();
+    return fetch(url).then(function(r){ return r.json(); });
+  }
+
+  function mostrarToast(msg, tipo){
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast show ' + (tipo || 'ok');
+    setTimeout(function(){ t.className = 'toast ' + (tipo || 'ok'); }, 3200);
+  }
+
+  function badgeRiesgo(estado){
+    var cls = estado === 'CRITICO' ? 'badge-critico' : (estado === 'MEDIO' ? 'badge-medio' : 'badge-bajo');
+    return '<span class="badge ' + cls + '">' + estado + '</span>';
+  }
+
+  function formatoFecha(valor){
+    if(!valor) return '—';
+    try{
+      var d = new Date(valor);
+      if(isNaN(d.getTime())) return valor;
+      return d.toLocaleDateString('es-AR') + ' ' + d.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+    }catch(e){ return valor; }
+  }
+
+  // Fecha/hora actual en formato para <input type="datetime-local">
+  function ahoraParaInput(){
+    var d = new Date();
+    var pad = function(n){ return n < 10 ? '0' + n : n; };
+    return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
+
+  // =====================================================================
+  // MI VIAJE
+  // =====================================================================
+  var conductoresCargados = false;
+
+  function cargarConductores(){
+    if(conductoresCargados) return; // ya se cargo antes, no repetir la consulta
+    var select = document.getElementById('nombreInput');
+
+    apiGet({ action:'listarConductores' })
+      .then(function(res){
+        if(res.ok && res.conductores.length){
+          var opciones = '<option value="" selected disabled>Seleccioná tu nombre</option>';
+          res.conductores.forEach(function(nombre){
+            opciones += '<option value="' + nombre.replace(/"/g,'&quot;') + '">' + nombre + '</option>';
+          });
+          select.innerHTML = opciones;
+          conductoresCargados = true;
+        } else {
+          select.innerHTML = '<option value="" selected disabled>No hay conductores cargados todavía</option>';
+        }
+      })
+      .catch(function(){
+        select.innerHTML = '<option value="" selected disabled>Error al cargar la lista</option>';
+        mostrarToast('No se pudo cargar la lista de conductores.', 'err');
+      });
+  }
+
+  function buscarViaje(){
+    var nombre = document.getElementById('nombreInput').value.trim();
+    if(!nombre){ mostrarToast('Seleccioná tu nombre de la lista', 'err'); return; }
+
+    var btn = document.getElementById('btnBuscar');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Buscando...';
+
+    apiGet({ action:'listarViajesActivos', nombre: nombre })
+      .then(function(res){
+        btn.disabled = false;
+        btn.textContent = 'Buscar mi viaje';
+        if(res.ok && res.viajes.length){
+          viajesActivos = res.viajes;
+          conductorActual = nombre;
+          renderListaViajes(viajesActivos);
+        } else {
+          viajesActivos = [];
+          document.getElementById('resultadoViaje').innerHTML =
+            '<div class="card empty">No tenés viajes pendientes de finalizar.<br>Si acabás de completar el formulario, esperá unos segundos y volvé a buscar.</div>';
+        }
+      })
+      .catch(function(){
+        btn.disabled = false;
+        btn.textContent = 'Buscar mi viaje';
+        mostrarToast('No se pudo conectar con el sistema. Probá de nuevo.', 'err');
+      });
+  }
+
+  function renderListaViajes(viajes){
+    if(viajes.length === 1){
+      // un solo viaje pendiente: vamos directo al detalle, sin listado intermedio
+      abrirDetalleViaje(0);
+      return;
+    }
+
+    var html = '<div class="card"><h2>Tenés ' + viajes.length + ' viajes pendientes</h2><p>Elegí cuál gestionar.</p></div>';
+    viajes.forEach(function(v, idx){
+      html += '<div class="card" onclick="abrirDetalleViaje(' + idx + ')" style="cursor:pointer;">' +
+        '<div class="trip-header"><div><div class="name">Viaje N° ' + v.serial + '</div>' +
+        '<div class="id">' + (v.origen||'—') + ' → ' + (v.destino||'—') + '</div></div>' +
+        badgeRiesgo(v.nivelRiesgoEstado) + '</div>' +
+        '<div class="kv"><span class="k">Fecha de inicio</span><span class="v">' + formatoFecha(v.inicioViaje) + '</span></div>' +
+        '<div class="kv"><span class="k">Estado</span><span class="v">' + v.estadoViaje + '</span></div>' +
+        '<div class="kv"><span class="k">Cliente</span><span class="v">' + (v.cliente||'—') + '</span></div>' +
+        '</div>';
+    });
+    document.getElementById('resultadoViaje').innerHTML = html;
+  }
+
+  function abrirDetalleViaje(idx){
+    currentViaje = viajesActivos[idx];
+    renderViaje(currentViaje);
+  }
+
+  function volverALista(){
+    if(viajesActivos.length > 1){
+      renderListaViajes(viajesActivos);
+    } else {
+      buscarViaje(); // recarga por si cambio algo
+    }
+  }
+
+  function renderViaje(v){
+    var html = '';
+
+    if(viajesActivos.length > 1){
+      html += '<a class="link-row" style="padding:0 0 14px;text-align:left;" onclick="volverALista()">‹ Volver a mis viajes</a>';
+    }
+
+    html += '<div class="card">';
+
+    html += '<div class="trip-header"><div><div class="name">' + v.conductorNombre + '</div>' +
+            '<div class="id">Viaje N° ' + v.serial + '</div></div>' +
+            badgeRiesgo(v.nivelRiesgoEstado) + '</div>';
+
+    if(v.requiereAutorizacion){
+      if(v.estadoAutorizacion === 'PENDIENTE'){
+        html += '<div class="status-banner status-pend">⏳ Requiere autorización de ' + v.rolAutoriza + ' (pendiente)</div>';
+      } else if(v.estadoAutorizacion === 'APROBADO'){
+        html += '<div class="status-banner status-ok">✓ Autorizado por ' + v.aprobadorNombre + '</div>';
+      } else if(v.estadoAutorizacion === 'RECHAZADO'){
+        html += '<div class="status-banner" style="background:var(--riesgo-critico-bg);color:var(--riesgo-critico);">✕ Viaje rechazado por ' + v.aprobadorNombre + '</div>';
+      }
+    }
+
+    html += '<div class="kv"><span class="k">Fecha de inicio</span><span class="v">' + formatoFecha(v.inicioViaje) + '</span></div>';
+    html += '<div class="kv"><span class="k">Origen</span><span class="v">' + (v.origen||'—') + '</span></div>';
+    html += '<div class="kv"><span class="k">Destino</span><span class="v">' + (v.destino||'—') + '</span></div>';
+    html += '<div class="kv"><span class="k">Cliente</span><span class="v">' + (v.cliente||'—') + '</span></div>';
+    html += '<div class="kv"><span class="k">Tractor / Semi</span><span class="v">' + (v.tractorPatente||'—') + ' / ' + (v.semiPatente||'—') + '</span></div>';
+    html += '<div class="kv"><span class="k">Estado del viaje</span><span class="v">' + v.estadoViaje + '</span></div>';
+
+    if(v.estadoViaje === 'PARADA CONFIRMADA'){
+      html += '<div class="kv"><span class="k">Parada confirmada</span><span class="v">' + formatoFecha(v.fechaConfirmacionParada) + '</span></div>';
+    }
+    if(v.estadoViaje === 'FINALIZADO'){
+      html += '<div class="kv"><span class="k">Fin del viaje</span><span class="v">' + formatoFecha(v.fechaFinReal) + '</span></div>';
+    }
+
+    html += '</div>'; // cierre card info
+
+    // Acciones segun estado
+    if(v.estadoViaje === 'FINALIZADO'){
+      html += '<div class="card status-banner status-ok" style="margin-bottom:0;">✓ Este viaje ya fue finalizado.</div>';
+    } else if(v.estadoViaje === 'INICIADO' && v.requiereParada === 'SI'){
+      html += '<div class="card"><h2>Parada de descanso</h2><p>Confirmá cuándo hiciste la parada de descanso en el tramo mayor a 2:15 hs. Podés ajustar la fecha y hora si no es en este momento.</p>' +
+              '<label>Fecha y hora de la parada</label>' +
+              '<input type="datetime-local" id="fechaParada" value="' + ahoraParaInput() + '">' +
+              '<button class="btn btn-primary" onclick="accionViaje(\'confirmarParada\', document.getElementById(\'fechaParada\').value)" id="btnParada">Confirmar Parada de Descanso</button></div>';
+    } else {
+      html += '<div class="card"><h2>Fin del viaje</h2><p>Confirmá cuándo llegaste a destino. Podés ajustar la fecha y hora si no es en este momento.</p>' +
+              '<label>Fecha y hora de finalización</label>' +
+              '<input type="datetime-local" id="fechaFin" value="' + ahoraParaInput() + '">' +
+              '<button class="btn btn-secondary" onclick="confirmarFin()" id="btnFinalizar">Finalizar Viaje</button>' +
+              '<div id="confirmFinBox"></div></div>';
+    }
+
+    document.getElementById('resultadoViaje').innerHTML = html;
+  }
+
+  function confirmarFin(){
+    var box = document.getElementById('confirmFinBox');
+    var fechaElegida = document.getElementById('fechaFin').value;
+    box.innerHTML = '<p style="margin-top:12px;">¿Confirmás que el viaje terminó el ' + formatoFecha(fechaElegida) + '?</p>' +
+      '<div class="btn-row"><button class="btn btn-ghost btn-sm" onclick="document.getElementById(\'confirmFinBox\').innerHTML=\'\'">Cancelar</button>' +
+      '<button class="btn btn-ok btn-sm" onclick="accionViaje(\'finalizarViaje\', document.getElementById(\'fechaFin\').value)">Sí, finalizar</button></div>';
+  }
+
+  function accionViaje(accion, fechaHora){
+    if(!currentViaje) return;
+    apiGet({ action: accion, serial: currentViaje.serial, fechaHora: fechaHora })
+      .then(function(res){
+        if(res.ok){
+          mostrarToast(res.mensaje, 'ok');
+          if(accion === 'finalizarViaje'){
+            // el viaje ya no esta activo: volvemos a buscar la lista actualizada
+            buscarViaje();
+          } else {
+            apiGet({ action:'obtenerViaje', serial: currentViaje.serial }).then(function(r2){
+              if(r2.ok){ currentViaje = r2.viaje; renderViaje(r2.viaje); }
+            });
+          }
+        } else {
+          mostrarToast(res.error || 'No se pudo completar la acción', 'err');
+        }
+      })
+      .catch(function(){ mostrarToast('No se pudo conectar con el sistema.', 'err'); });
+  }
+
+  // =====================================================================
+  // SUPERVISOR
+  // =====================================================================
+  function cargarPendientes(){
+    document.getElementById('listaPendientes').innerHTML = '<div class="empty">Cargando...</div>';
+
+    Promise.all([ apiGet({ action:'listarPendientesAutorizacion' }), obtenerAprobadores() ])
+      .then(function(resultados){
+        var res = resultados[0];
+        if(!res.ok){ mostrarToast(res.error || 'Error al cargar', 'err'); return; }
+        if(res.viajes.length === 0){
+          document.getElementById('listaPendientes').innerHTML = '<div class="card empty">No hay viajes pendientes de autorización en este momento.</div>';
+          return;
+        }
+        var html = '';
+        res.viajes.forEach(function(v){
+          html += renderCardPendiente(v);
+        });
+        document.getElementById('listaPendientes').innerHTML = html;
+      })
+      .catch(function(){ mostrarToast('No se pudo conectar con el sistema.', 'err'); });
+  }
+
+  function renderCardPendiente(v){
+    var formId = 'form-' + v.serial;
+    return '<div class="card">' +
+      '<div class="trip-header"><div><div class="name">' + v.conductorNombre + '</div>' +
+      '<div class="id">Viaje N° ' + v.serial + '</div></div>' + badgeRiesgo(v.nivelRiesgoEstado) + '</div>' +
+      '<div class="kv"><span class="k">Origen → Destino</span><span class="v">' + (v.origen||'—') + ' → ' + (v.destino||'—') + '</span></div>' +
+      '<div class="kv"><span class="k">Cliente</span><span class="v">' + (v.cliente||'—') + '</span></div>' +
+      '<div class="kv"><span class="k">Puntaje de riesgo</span><span class="v">' + v.nivelRiesgoPuntos + ' pts</span></div>' +
+      '<div class="kv"><span class="k">Autoriza</span><span class="v">' + v.rolAutoriza + '</span></div>' +
+      '<div class="btn-row" style="margin-top:14px;">' +
+      '<button class="btn btn-err btn-sm" onclick="toggleAprobar(\'' + formId + '\',\'RECHAZADO\')">Rechazar</button>' +
+      '<button class="btn btn-ok btn-sm" onclick="toggleAprobar(\'' + formId + '\',\'APROBADO\')">Autorizar</button>' +
+      '</div>' +
+      '<div class="approve-form" id="' + formId + '">' +
+      '<label>Tu nombre (como responsable)</label>' +
+      selectAprobadores(formId, v.rolAutoriza) +
+      '<label>PIN</label>' +
+      '<input type="password" inputmode="numeric" id="' + formId + '-pin" placeholder="PIN">' +
+      '<button class="btn btn-secondary" onclick="confirmarAutorizacion(\'' + v.serial + '\',\'' + formId + '\')">Confirmar firma</button>' +
+      '</div>' +
+      '</div>';
+  }
+
+  var decisionActual = {};
+  function toggleAprobar(formId, decision){
+    decisionActual[formId] = decision;
+    var el = document.getElementById(formId);
+    el.classList.toggle('show');
+  }
+
+  function confirmarAutorizacion(serial, formId){
+    var nombre = document.getElementById(formId + '-nombre').value.trim();
+    var pin = document.getElementById(formId + '-pin').value.trim();
+    var decision = decisionActual[formId];
+
+    if(!nombre || !pin){ mostrarToast('Completá tu nombre y PIN', 'err'); return; }
+
+    apiGet({ action:'autorizarViaje', serial: serial, nombre: nombre, pin: pin, decision: decision })
+      .then(function(res){
+        if(res.ok){
+          mostrarToast(res.mensaje, 'ok');
+          cargarPendientes();
+        } else {
+          mostrarToast(res.error || 'No se pudo procesar la firma', 'err');
+        }
+      })
+      .catch(function(){ mostrarToast('No se pudo conectar con el sistema.', 'err'); });
+  }
+
+  // =====================================================================
+  // DASHBOARD
+  // =====================================================================
+  var dashboardDatosCompletos = []; // todos los viajes tal cual vienen del Sheet
+  var dashboardDatosFiltrados = []; // luego de aplicar el filtro de fecha
+  var viajesListadoActual = []; // los que se muestran en el listado general (para el buscador)
+
+  var DEFINICION_PILARES = [
+    { key:'pilarDistancia', nombre:'Distancia', max:4 },
+    { key:'pilarClima', nombre:'Clima', max:4 },
+    { key:'pilarConvoy', nombre:'Convoy', max:4 },
+    { key:'pilarCondicionesRuta', nombre:'Condiciones de Ruta', max:4 },
+    { key:'pilarComunicaciones', nombre:'Comunicaciones', max:4 },
+    { key:'pilarTipoRuta', nombre:'Tipo de Ruta', max:4 },
+    { key:'pilarJornada', nombre:'Jornada de Trabajo', max:3 },
+    { key:'pilarSomnolencia', nombre:'Somnolencia', max:4 },
+    { key:'pilarCondicionOptima', nombre:'Bienestar del Conductor', max:4 }
+  ];
+
+  function cargarDashboard(){
+    document.getElementById('dashboardContenido').innerHTML = '<div class="card empty">Cargando indicadores...</div>';
+
+    Promise.all([ apiGet({ action:'listarViajes' }), obtenerAprobadores() ])
+      .then(function(resultados){
+        var res = resultados[0];
+        if(!res.ok){ mostrarToast(res.error || 'Error al cargar el dashboard', 'err'); return; }
+        dashboardDatosCompletos = res.viajes;
+        aplicarFiltroDashboard();
+      })
+      .catch(function(){ mostrarToast('No se pudo conectar con el sistema.', 'err'); });
+  }
+
+  function fechaParaInputDate(d){
+    var pad = function(n){ return n < 10 ? '0' + n : n; };
+    return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
+  }
+
+  function setPresetFiltro(tipo){
+    var hoy = new Date();
+    var desde = '', hasta = '';
+
+    if(tipo === 'hoy'){
+      desde = fechaParaInputDate(hoy);
+      hasta = fechaParaInputDate(hoy);
+    } else if(tipo === 'semana'){
+      var hace7 = new Date(hoy);
+      hace7.setDate(hace7.getDate() - 6);
+      desde = fechaParaInputDate(hace7);
+      hasta = fechaParaInputDate(hoy);
+    } else if(tipo === 'mes'){
+      var primerDia = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+      desde = fechaParaInputDate(primerDia);
+      hasta = fechaParaInputDate(hoy);
+    } else {
+      desde = '';
+      hasta = '';
+    }
+
+    document.getElementById('filtroDesde').value = desde;
+    document.getElementById('filtroHasta').value = hasta;
+    aplicarFiltroDashboard();
+  }
+
+  function fechaDentroDelRango(fechaViaje, desde, hasta){
+    if(!fechaViaje) return false;
+    var f = new Date(fechaViaje);
+    if(isNaN(f.getTime())) return false;
+    if(desde && f < new Date(desde + 'T00:00:00')) return false;
+    if(hasta && f > new Date(hasta + 'T23:59:59')) return false;
+    return true;
+  }
+
+  function aplicarFiltroDashboard(){
+    var desde = document.getElementById('filtroDesde').value;
+    var hasta = document.getElementById('filtroHasta').value;
+
+    if(!desde && !hasta){
+      dashboardDatosFiltrados = dashboardDatosCompletos.slice();
+    } else {
+      dashboardDatosFiltrados = dashboardDatosCompletos.filter(function(v){
+        return fechaDentroDelRango(v.inicioViaje, desde, hasta);
+      });
+    }
+    renderDashboard(dashboardDatosFiltrados);
+  }
+
+  // Calcula todos los indicadores a partir de un listado de viajes.
+  // La usan tanto la pantalla como el generador de PDF, para que nunca queden desincronizados.
+  function calcularIndicadoresDashboard(viajes){
+    var totalViajes = viajes.length;
+    var choferesUnicos = {};
+    viajes.forEach(function(v){ if(v.conductorNombre) choferesUnicos[v.conductorNombre.toUpperCase()] = true; });
+    var totalChoferes = Object.keys(choferesUnicos).length;
+    var enCurso = viajes.filter(function(v){ return v.estadoViaje !== 'FINALIZADO'; }).length;
+    var pendientesAutorizacion = viajes.filter(function(v){ return v.requiereAutorizacion && v.estadoAutorizacion === 'PENDIENTE'; }).length;
+
+    var porChofer = {};
+    viajes.forEach(function(v){
+      var n = v.conductorNombre || 'Sin nombre';
+      porChofer[n] = (porChofer[n] || 0) + 1;
+    });
+    var listaChoferes = Object.keys(porChofer).map(function(n){ return { nombre:n, cantidad:porChofer[n] }; });
+    listaChoferes.sort(function(a,b){ return b.cantidad - a.cantidad; });
+
+    var conteoRiesgo = { BAJO:0, MEDIO:0, CRITICO:0 };
+    viajes.forEach(function(v){ if(conteoRiesgo[v.nivelRiesgoEstado] !== undefined) conteoRiesgo[v.nivelRiesgoEstado]++; });
+    var totalRiesgo = conteoRiesgo.BAJO + conteoRiesgo.MEDIO + conteoRiesgo.CRITICO;
+
+    var candidatosCumplimiento = viajes.filter(function(v){ return v.estadoViaje === 'FINALIZADO' && v.finEstimado && v.fechaFinReal; });
+    var cumplidos = 0, demorados = 0, incompletos = 0;
+    var detalleFinalizados = [];
+
+    candidatosCumplimiento.forEach(function(v){
+      var estimado = new Date(v.finEstimado);
+      var real = new Date(v.fechaFinReal);
+      if(isNaN(estimado.getTime()) || isNaN(real.getTime())){
+        incompletos++;
+        detalleFinalizados.push({ nombre:v.conductorNombre, serial:v.serial, estado:'INCOMPLETO', deltaMin:null });
+        return;
+      }
+      var deltaMin = Math.round((real - estimado) / 60000);
+      if(Math.abs(deltaMin) > 1440){
+        incompletos++;
+        detalleFinalizados.push({ nombre:v.conductorNombre, serial:v.serial, estado:'INCOMPLETO', deltaMin:null });
+        return;
+      }
+      if(deltaMin <= 15){
+        cumplidos++;
+        detalleFinalizados.push({ nombre:v.conductorNombre, serial:v.serial, estado:'CUMPLE', deltaMin:deltaMin });
+      } else {
+        demorados++;
+        detalleFinalizados.push({ nombre:v.conductorNombre, serial:v.serial, estado:'NO CUMPLE', deltaMin:deltaMin });
+      }
+    });
+
+    var totalValidosCumpl = cumplidos + demorados;
+
+    var analisisPilares = DEFINICION_PILARES.map(function(p){
+      var valores = viajes.map(function(v){ return Number(v[p.key]); }).filter(function(n){ return !isNaN(n); });
+      var promedio = valores.length ? (valores.reduce(function(a,b){ return a+b; },0) / valores.length) : 0;
+      var pct = (promedio / p.max) * 100;
+      return { nombre:p.nombre, promedio:promedio, max:p.max, pct:pct };
+    });
+    analisisPilares.sort(function(a,b){ return b.pct - a.pct; });
+
+    return {
+      totalViajes: totalViajes,
+      totalChoferes: totalChoferes,
+      enCurso: enCurso,
+      pendientesAutorizacion: pendientesAutorizacion,
+      listaChoferes: listaChoferes,
+      conteoRiesgo: conteoRiesgo,
+      totalRiesgo: totalRiesgo,
+      cumplidos: cumplidos,
+      demorados: demorados,
+      incompletos: incompletos,
+      totalValidosCumpl: totalValidosCumpl,
+      detalleFinalizados: detalleFinalizados,
+      analisisPilares: analisisPilares
+    };
+  }
+
+  function renderDashboard(viajes){
+    var d = calcularIndicadoresDashboard(viajes);
+    var html = '';
+
+    if(viajes.length === 0){
+      document.getElementById('dashboardContenido').innerHTML = '<div class="card empty">No hay planes de viaje en el período seleccionado.</div>';
+      return;
+    }
+
+    // ---- KPIs generales ----
+    html += '<div class="kpi-row">' +
+      '<div class="kpi"><div class="num">' + d.totalViajes + '</div><div class="lbl">Planes totales</div></div>' +
+      '<div class="kpi"><div class="num">' + d.totalChoferes + '</div><div class="lbl">Choferes</div></div>' +
+      '<div class="kpi"><div class="num">' + d.enCurso + '</div><div class="lbl">En curso</div></div>' +
+      '<div class="kpi"><div class="num">' + d.pendientesAutorizacion + '</div><div class="lbl">Sin autorizar</div></div>' +
+      '</div>';
+
+    // ---- Planes por chofer ----
+    var maxCantidad = d.listaChoferes.length ? d.listaChoferes[0].cantidad : 1;
+    html += '<div class="card"><h2>Planes por chofer</h2><p>Cantidad de Planes de Viaje cargados por cada conductor.</p>';
+    d.listaChoferes.forEach(function(c){
+      var pct = Math.round((c.cantidad / maxCantidad) * 100);
+      html += '<div class="bar-item"><div class="bar-top"><span class="nombre">' + c.nombre + '</span><span class="valor">' + c.cantidad + '</span></div>' +
+              '<div class="bar-track"><div class="bar-fill" style="width:' + pct + '%;"></div></div></div>';
+    });
+    html += '</div>';
+
+    // ---- Torta de distribucion de riesgo ----
+    var pctBajo = d.totalRiesgo ? (d.conteoRiesgo.BAJO / d.totalRiesgo * 100) : 0;
+    var pctMedio = d.totalRiesgo ? (d.conteoRiesgo.MEDIO / d.totalRiesgo * 100) : 0;
+    var pctCritico = d.totalRiesgo ? (d.conteoRiesgo.CRITICO / d.totalRiesgo * 100) : 0;
+    var corte1 = pctBajo;
+    var corte2 = pctBajo + pctMedio;
+    var gradiente = 'conic-gradient(var(--riesgo-bajo) 0% ' + corte1 + '%, var(--riesgo-medio) ' + corte1 + '% ' + corte2 + '%, var(--riesgo-critico) ' + corte2 + '% 100%)';
+
+    html += '<div class="card"><h2>Distribución de riesgo</h2><p>Porcentaje de viajes según su nivel de riesgo calculado.</p>' +
+      '<div class="pie-wrap">' +
+      '<div class="pie" style="background:' + gradiente + ';"></div>' +
+      '<div class="legend">' +
+      '<div class="legend-item"><span class="legend-dot" style="background:var(--riesgo-bajo);"></span><span class="legend-txt">Bajo</span><span class="legend-num">' + d.conteoRiesgo.BAJO + ' (' + pctBajo.toFixed(0) + '%)</span></div>' +
+      '<div class="legend-item"><span class="legend-dot" style="background:var(--riesgo-medio);"></span><span class="legend-txt">Medio</span><span class="legend-num">' + d.conteoRiesgo.MEDIO + ' (' + pctMedio.toFixed(0) + '%)</span></div>' +
+      '<div class="legend-item"><span class="legend-dot" style="background:var(--riesgo-critico);"></span><span class="legend-txt">Crítico</span><span class="legend-num">' + d.conteoRiesgo.CRITICO + ' (' + pctCritico.toFixed(0) + '%)</span></div>' +
+      '</div></div></div>';
+
+    // ---- Cumplimiento del Plan de Viaje ----
+    var pctCumplido = d.totalValidosCumpl ? (d.cumplidos / d.totalValidosCumpl * 100) : 0;
+    var pctDemorado = d.totalValidosCumpl ? (d.demorados / d.totalValidosCumpl * 100) : 0;
+
+    html += '<div class="card"><h2>Cumplimiento del Plan de Viaje</h2><p>Compara la fecha y hora estimada de fin de viaje contra la fecha y hora real de finalización. Tolerancia: 15 minutos.</p>';
+    html += '<div class="kv"><span class="k">Planes sin finalizar</span><span class="v">' + d.enCurso + '</span></div>';
+
+    if(d.totalValidosCumpl === 0){
+      html += '<div class="empty">Todavía no hay viajes finalizados con datos de fecha/hora suficientes para calcular el cumplimiento.</div>';
+    } else {
+      var gradientePunt = 'conic-gradient(var(--riesgo-bajo) 0% ' + pctCumplido + '%, var(--riesgo-critico) ' + pctCumplido + '% 100%)';
+      html += '<div class="pie-wrap" style="margin-top:14px;">' +
+        '<div class="pie" style="background:' + gradientePunt + ';"></div>' +
+        '<div class="legend">' +
+        '<div class="legend-item"><span class="legend-dot" style="background:var(--riesgo-bajo);"></span><span class="legend-txt">Cumple</span><span class="legend-num">' + d.cumplidos + ' (' + pctCumplido.toFixed(0) + '%)</span></div>' +
+        '<div class="legend-item"><span class="legend-dot" style="background:var(--riesgo-critico);"></span><span class="legend-txt">No cumple</span><span class="legend-num">' + d.demorados + ' (' + pctDemorado.toFixed(0) + '%)</span></div>' +
+        '</div></div>';
+    }
+
+    if(d.detalleFinalizados.length > 0){
+      html += '<div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--line);">' +
+        '<p style="font-size:12px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.04em;margin:0 0 10px;">Viajes finalizados</p>';
+      d.detalleFinalizados.forEach(function(f){
+        var color = f.estado === 'CUMPLE' ? 'var(--riesgo-bajo)' : (f.estado === 'NO CUMPLE' ? 'var(--riesgo-critico)' : 'var(--ink-soft)');
+        var detalle = f.estado === 'INCOMPLETO' ? 'Dato incompleto' : (f.deltaMin <= 15 ? 'A tiempo' : '+' + f.deltaMin + ' min');
+        html += '<div class="delay-row"><span>' + f.nombre + ' (Viaje N° ' + f.serial + ')</span><span style="font-weight:700;color:' + color + ';">' + detalle + '</span></div>';
+      });
+      html += '</div>';
+    }
+    html += '</div>';
+
+    // ---- Analisis de criticidad por pilar ----
+    html += '<div class="card"><h2>Análisis de criticidad por pilar</h2><p>Promedio de puntaje real de cada pilar sobre su máximo posible, en los planes del período seleccionado. El de arriba es el que más aporta al riesgo.</p>';
+    d.analisisPilares.forEach(function(p, idx){
+      var color = p.pct >= 75 ? 'var(--riesgo-critico)' : (p.pct >= 50 ? 'var(--riesgo-medio)' : 'var(--riesgo-bajo)');
+      html += '<div class="bar-item"><div class="bar-top"><span class="nombre">' + (idx+1) + '. ' + p.nombre + '</span>' +
+              '<span class="valor">' + p.promedio.toFixed(1) + ' / ' + p.max + '</span></div>' +
+              '<div class="bar-track"><div class="bar-fill" style="width:' + p.pct.toFixed(0) + '%;background:' + color + ';"></div></div></div>';
+    });
+    if(d.analisisPilares.length){
+      html += '<p style="margin:14px 0 0;font-size:12.5px;">🔎 <strong>' + d.analisisPilares[0].nombre + '</strong> es hoy el pilar con mayor aporte relativo al riesgo total de la flota.</p>';
+    }
+    html += '</div>';
+
+    // ---- Listado general de viajes ----
+    viajesListadoActual = viajes;
+    html += '<div class="card"><h2>Listado general de viajes</h2><p>Detalle completo de cada plan: fechas, cumplimiento, criticidad, puntaje por pilar y autorización.</p>' +
+      '<input type="text" id="buscarListado" placeholder="Buscar por chofer..." oninput="filtrarListadoGeneral()">' +
+      '<div id="listadoGeneralContenedor">' + construirListadoGeneralHTML(viajes) + '</div>' +
+      '</div>';
+
+    document.getElementById('dashboardContenido').innerHTML = html;
+  }
+
+  function filtrarListadoGeneral(){
+    var texto = document.getElementById('buscarListado').value.trim().toUpperCase();
+    var filtrados = texto ?
+      viajesListadoActual.filter(function(v){ return (v.conductorNombre || '').toUpperCase().indexOf(texto) !== -1; }) :
+      viajesListadoActual;
+    document.getElementById('listadoGeneralContenedor').innerHTML = construirListadoGeneralHTML(filtrados);
+  }
+
+  function calcularCumplimientoViaje(v){
+    var cumplimientoTxt = 'Pendiente de finalizar';
+    var cumplimientoColor = 'var(--ink-soft)';
+    if(v.estadoViaje === 'FINALIZADO'){
+      if(v.finEstimado && v.fechaFinReal){
+        var estimado = new Date(v.finEstimado);
+        var real = new Date(v.fechaFinReal);
+        if(!isNaN(estimado.getTime()) && !isNaN(real.getTime())){
+          var deltaMin = Math.round((real - estimado) / 60000);
+          if(Math.abs(deltaMin) > 1440){
+            cumplimientoTxt = 'Dato incompleto';
+          } else if(deltaMin <= 15){
+            cumplimientoTxt = 'A tiempo';
+            cumplimientoColor = 'var(--riesgo-bajo)';
+          } else {
+            cumplimientoTxt = 'No cumple (+' + deltaMin + ' min)';
+            cumplimientoColor = 'var(--riesgo-critico)';
+          }
+        } else {
+          cumplimientoTxt = 'Dato incompleto';
+        }
+      } else {
+        cumplimientoTxt = 'Dato incompleto';
+      }
+    }
+    return { texto: cumplimientoTxt, color: cumplimientoColor };
+  }
+
+  function calcularAutorizacionViaje(v){
+    var autorizacionTxt = 'No requiere';
+    var autorizacionColor = 'var(--ink-soft)';
+    if(v.requiereAutorizacion){
+      if(v.estadoAutorizacion === 'PENDIENTE'){
+        autorizacionTxt = 'Pendiente (' + v.rolAutoriza + ')';
+        autorizacionColor = 'var(--riesgo-medio)';
+      } else if(v.estadoAutorizacion === 'APROBADO'){
+        autorizacionTxt = 'Aprobado por ' + v.aprobadorNombre;
+        autorizacionColor = 'var(--riesgo-bajo)';
+      } else if(v.estadoAutorizacion === 'RECHAZADO'){
+        autorizacionTxt = 'Rechazado por ' + v.aprobadorNombre;
+        autorizacionColor = 'var(--riesgo-critico)';
+      }
+    }
+    return { texto: autorizacionTxt, color: autorizacionColor };
+  }
+
+  var DEFINICION_PILARES_VIAJE = [
+    { key:'pilarDistancia', nombre:'Distancia', max:4 },
+    { key:'pilarClima', nombre:'Clima', max:4 },
+    { key:'pilarConvoy', nombre:'Convoy', max:4 },
+    { key:'pilarCondicionesRuta', nombre:'Condiciones de Ruta', max:4 },
+    { key:'pilarComunicaciones', nombre:'Comunicaciones', max:4 },
+    { key:'pilarTipoRuta', nombre:'Tipo de Ruta', max:4 },
+    { key:'pilarJornada', nombre:'Jornada de Trabajo', max:3 },
+    { key:'pilarSomnolencia', nombre:'Somnolencia', max:4 },
+    { key:'pilarCondicionOptima', nombre:'Bienestar del Conductor', max:4 }
+  ];
+
+  // Barras de puntaje por pilar de UN viaje puntual (mismo componente visual que el analisis general)
+  function htmlPilaresBarras(v){
+    var html = '';
+    DEFINICION_PILARES_VIAJE.forEach(function(p){
+      var val = Number(v[p.key]);
+      var valOk = !isNaN(val);
+      var pct = valOk ? (val / p.max * 100) : 0;
+      var color = pct >= 75 ? 'var(--riesgo-critico)' : (pct >= 50 ? 'var(--riesgo-medio)' : 'var(--riesgo-bajo)');
+      html += '<div class="bar-item"><div class="bar-top"><span class="nombre">' + p.nombre + '</span>' +
+              '<span class="valor">' + (valOk ? val : '—') + ' / ' + p.max + '</span></div>' +
+              '<div class="bar-track"><div class="bar-fill" style="width:' + pct.toFixed(0) + '%;background:' + color + ';"></div></div></div>';
+    });
+    return html;
+  }
+
+  function formatoFechaCorta(valor){
+    if(!valor) return '—';
+    try{
+      var d = new Date(valor);
+      if(isNaN(d.getTime())) return valor;
+      var pad = function(n){ return n < 10 ? '0' + n : n; };
+      return pad(d.getDate()) + '/' + pad(d.getMonth()+1) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+    }catch(e){ return valor; }
+  }
+
+  function toggleFilaDetalle(id){
+    document.getElementById(id).classList.toggle('show');
+  }
+
+  function confirmarAutorizacionListado(serial, formId){
+    var nombre = document.getElementById(formId + '-nombre').value.trim();
+    var pin = document.getElementById(formId + '-pin').value.trim();
+    var decision = decisionActual[formId];
+
+    if(!nombre || !pin){ mostrarToast('Completá tu nombre y PIN', 'err'); return; }
+    if(!decision){ mostrarToast('Elegí Autorizar o Rechazar primero', 'err'); return; }
+
+    apiGet({ action:'autorizarViaje', serial: serial, nombre: nombre, pin: pin, decision: decision })
+      .then(function(res){
+        if(res.ok){
+          mostrarToast(res.mensaje, 'ok');
+          cargarDashboard();
+        } else {
+          mostrarToast(res.error || 'No se pudo procesar la firma', 'err');
+        }
+      })
+      .catch(function(){ mostrarToast('No se pudo conectar con el sistema.', 'err'); });
+  }
+
+  function construirListadoGeneralHTML(viajes){
+    if(!viajes.length){ return '<div class="empty">No hay viajes que coincidan con la búsqueda.</div>'; }
+
+    // ---- Version mobile: cards ----
+    var htmlMobile = '';
+    viajes.forEach(function(v, idx){
+      var cumplimiento = calcularCumplimientoViaje(v);
+      var autorizacion = calcularAutorizacionViaje(v);
+      var pilarId = 'card-pilares-' + idx + '-' + v.serial;
+      var authFormId = 'card-auth-' + idx + '-' + v.serial;
+      var pendienteAuth = v.requiereAutorizacion && v.estadoAutorizacion === 'PENDIENTE';
+
+      htmlMobile += '<div class="card" style="margin-bottom:10px;">' +
+        '<div class="trip-header"><div><div class="name">' + v.conductorNombre + '</div><div class="id">Viaje N° ' + v.serial + '</div></div>' + badgeRiesgo(v.nivelRiesgoEstado) + '</div>' +
+        '<div class="kv"><span class="k">Estado del viaje</span><span class="v">' + v.estadoViaje + '</span></div>' +
+        '<div class="kv"><span class="k">Inicio</span><span class="v">' + formatoFecha(v.inicioViaje) + '</span></div>' +
+        '<div class="kv"><span class="k">Fin estimado</span><span class="v">' + formatoFecha(v.finEstimado) + '</span></div>' +
+        '<div class="kv"><span class="k">Fin real</span><span class="v">' + formatoFecha(v.fechaFinReal) + '</span></div>' +
+        '<div class="kv"><span class="k">Cumplimiento</span><span class="v" style="color:' + cumplimiento.color + ';">' + cumplimiento.texto + '</span></div>' +
+        '<div class="kv"><span class="k">Puntaje total</span><span class="v">' + (v.nivelRiesgoPuntos || '—') + ' pts</span></div>' +
+        '<div class="kv"><span class="k">Autorización</span><span class="v" style="color:' + autorizacion.color + ';">' + autorizacion.texto + '</span></div>';
+
+      if(pendienteAuth){
+        htmlMobile += '<div class="btn-row" style="margin-top:10px;">' +
+          '<button class="btn btn-err btn-sm" onclick="toggleAprobar(\'' + authFormId + '\',\'RECHAZADO\')">Rechazar</button>' +
+          '<button class="btn btn-ok btn-sm" onclick="toggleAprobar(\'' + authFormId + '\',\'APROBADO\')">Autorizar</button>' +
+          '</div>' +
+          '<div class="approve-form" id="' + authFormId + '">' +
+          '<label>Tu nombre (como responsable)</label>' + selectAprobadores(authFormId, v.rolAutoriza) +
+          '<label>PIN</label><input type="password" inputmode="numeric" id="' + authFormId + '-pin" placeholder="PIN">' +
+          '<button class="btn btn-secondary" onclick="confirmarAutorizacionListado(\'' + v.serial + '\',\'' + authFormId + '\')">Confirmar firma</button>' +
+          '</div>';
+      }
+
+      htmlMobile += '<button class="btn btn-ghost btn-sm" style="margin-top:10px;width:100%;" onclick="document.getElementById(\'' + pilarId + '\').classList.toggle(\'show\')">Ver puntaje por pilar ▾</button>' +
+        '<div class="approve-form" id="' + pilarId + '">' + htmlPilaresBarras(v) + '</div>' +
+        '</div>';
+    });
+
+    // ---- Version desktop: tabla compacta (Chofer+N°, Riesgo+Puntaje combinados; fechas cortas) ----
+    var filasTabla = '';
+    viajes.forEach(function(v, idx){
+      var cumplimiento = calcularCumplimientoViaje(v);
+      var autorizacion = calcularAutorizacionViaje(v);
+      var detalleId = 'tabla-detalle-' + idx + '-' + v.serial;
+      var authFormId = 'tabla-auth-' + idx + '-' + v.serial;
+      var claseRiesgo = v.nivelRiesgoEstado === 'CRITICO' ? 'badge-critico' : (v.nivelRiesgoEstado === 'MEDIO' ? 'badge-medio' : 'badge-bajo');
+      var estadoCorto = v.estadoViaje === 'PARADA CONFIRMADA' ? 'PARADA' : v.estadoViaje;
+      var pendienteAuth = v.requiereAutorizacion && v.estadoAutorizacion === 'PENDIENTE';
+
+      var contenidoDetalle = '<div class="pilares-grid">' + htmlPilaresBarras(v) + '</div>';
+      if(pendienteAuth){
+        contenidoDetalle += '<div style="margin-top:16px;padding-top:16px;border-top:1px dashed var(--line);">' +
+          '<p style="font-weight:700;font-size:12px;color:var(--ink-soft);text-transform:uppercase;margin:0 0 10px;">Autorizar este viaje (' + v.rolAutoriza + ')</p>' +
+          '<div class="btn-row" style="margin-bottom:12px;max-width:280px;">' +
+          '<button class="btn btn-err btn-sm" onclick="toggleAprobar(\'' + authFormId + '\',\'RECHAZADO\')">Rechazar</button>' +
+          '<button class="btn btn-ok btn-sm" onclick="toggleAprobar(\'' + authFormId + '\',\'APROBADO\')">Autorizar</button>' +
+          '</div>' +
+          '<div class="approve-form approve-form-inline" id="' + authFormId + '">' +
+          '<div class="field-inline"><label>Tu nombre (como responsable)</label>' + selectAprobadores(authFormId, v.rolAutoriza) + '</div>' +
+          '<div class="field-inline"><label>PIN</label><input type="password" inputmode="numeric" id="' + authFormId + '-pin" placeholder="PIN"></div>' +
+          '<button class="btn btn-secondary" onclick="confirmarAutorizacionListado(\'' + v.serial + '\',\'' + authFormId + '\')">Confirmar firma</button>' +
+          '</div></div>';
+      }
+
+      filasTabla += '<tr>' +
+        '<td><div style="font-weight:600;">' + v.conductorNombre + '</div><div style="color:var(--ink-soft);font-size:11px;">N° ' + v.serial + '</div></td>' +
+        '<td>' + estadoCorto + '</td>' +
+        '<td><span class="badge ' + claseRiesgo + '">' + v.nivelRiesgoEstado + '</span><div style="color:var(--ink-soft);font-size:10.5px;margin-top:3px;">' + (v.nivelRiesgoPuntos || '—') + ' pts</div></td>' +
+        '<td>' + formatoFechaCorta(v.inicioViaje) + '</td>' +
+        '<td>' + formatoFechaCorta(v.finEstimado) + '</td>' +
+        '<td>' + formatoFechaCorta(v.fechaFinReal) + '</td>' +
+        '<td style="color:' + cumplimiento.color + ';font-weight:600;">' + cumplimiento.texto + '</td>' +
+        '<td class="wrap-cell" style="color:' + autorizacion.color + ';font-weight:600;">' + autorizacion.texto + '</td>' +
+        '<td><button class="btn btn-ghost btn-sm" onclick="toggleFilaDetalle(\'' + detalleId + '\')">Detalle ▾</button></td>' +
+        '</tr>' +
+        '<tr class="fila-detalle" id="' + detalleId + '"><td colspan="9">' + contenidoDetalle + '</td></tr>';
+    });
+
+    var htmlDesktop = '<div class="tabla-wrap"><table class="tabla-viajes"><thead><tr>' +
+      '<th>Chofer</th><th>Estado</th><th>Riesgo</th>' +
+      '<th>Inicio</th><th>Fin Est.</th><th>Fin Real</th><th>Cumplimiento</th><th>Autorización</th><th></th>' +
+      '</tr></thead><tbody>' + filasTabla + '</tbody></table></div>';
+
+    return '<div class="listado-mobile">' + htmlMobile + '</div><div class="listado-desktop">' + htmlDesktop + '</div>';
+  }
+
+  // =====================================================================
+  // GENERAR PDF PARA EL CLIENTE
+  // =====================================================================
+  // Dibuja una torta en un canvas oculto y devuelve la imagen en base64 (PNG)
+  function crearImagenTorta(segmentos){
+    var tam = 300; // resolucion alta para que se vea nitida al imprimir
+    var canvas = document.createElement('canvas');
+    canvas.width = tam;
+    canvas.height = tam;
+    var ctx = canvas.getContext('2d');
+    var cx = tam/2, cy = tam/2, r = tam/2 - 6;
+    var total = segmentos.reduce(function(s, seg){ return s + seg.valor; }, 0);
+
+    if(!total){
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI*2);
+      ctx.fillStyle = '#eef0f3';
+      ctx.fill();
+      return canvas.toDataURL('image/png');
+    }
+
+    var anguloInicio = -Math.PI/2;
+    segmentos.forEach(function(seg){
+      if(seg.valor <= 0) return;
+      var anguloFin = anguloInicio + (seg.valor/total) * Math.PI * 2;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, r, anguloInicio, anguloFin);
+      ctx.closePath();
+      ctx.fillStyle = seg.color;
+      ctx.fill();
+      anguloInicio = anguloFin;
+    });
+
+    return canvas.toDataURL('image/png');
+  }
+
+  // Dibuja un cuadradito de color + texto, para las leyendas de las tortas
+  function dibujarItemLeyenda(doc, x, y, colorHex, texto){
+    doc.setFillColor(colorHex);
+    doc.rect(x, y - 6, 7, 7, 'F');
+    doc.setTextColor(60, 60, 60);
+    doc.text(texto, x + 12, y);
+  }
+
+  function generarPDF(){
+    if(!dashboardDatosFiltrados.length){
+      mostrarToast('No hay datos para generar el PDF con el filtro actual.', 'err');
+      return;
+    }
+
+    var d = calcularIndicadoresDashboard(dashboardDatosFiltrados);
+    var desde = document.getElementById('filtroDesde').value;
+    var hasta = document.getElementById('filtroHasta').value;
+    var periodoTexto = (desde || hasta) ? ((desde || '…') + ' al ' + (hasta || '…')) : 'Todos los registros cargados';
+
+    var { jsPDF } = window.jspdf;
+    var doc = new jsPDF({ unit:'pt', format:'a4' });
+    var pageWidth = doc.internal.pageSize.getWidth();
+    var margin = 40;
+    var colorGraphite = [26,26,26];
+    var colorOrange = [192,0,0];
+    var colorBajo = [29,158,117];
+    var colorMedio = [239,159,39];
+    var colorCritico = [192,0,0];
+
+    // ---- Encabezado ----
+    doc.setFillColor(colorGraphite[0], colorGraphite[1], colorGraphite[2]);
+    doc.rect(0, 0, pageWidth, 70, 'F');
+    doc.setFillColor(colorOrange[0], colorOrange[1], colorOrange[2]);
+    doc.rect(0, 70, pageWidth, 4, 'F');
+
+    doc.setTextColor(255,255,255);
+    doc.setFontSize(16);
+    doc.setFont(undefined, 'bold');
+    doc.text('Griffouliere S.A.', margin, 30);
+    doc.setFontSize(11);
+    doc.setFont(undefined, 'normal');
+    doc.text('Informe de Gestión — Plan de Viaje', margin, 48);
+    doc.setFontSize(9);
+    doc.text('Período: ' + periodoTexto + '   |   Generado: ' + new Date().toLocaleString('es-AR'), margin, 62);
+
+    var y = 95;
+
+    // ---- Resumen general ----
+    doc.autoTable({
+      startY: y,
+      margin: { left: margin, right: margin },
+      head: [['Resumen general', '']],
+      body: [
+        ['Planes totales', String(d.totalViajes)],
+        ['Choferes', String(d.totalChoferes)],
+        ['Viajes en curso', String(d.enCurso)],
+        ['Viajes sin autorizar', String(d.pendientesAutorizacion)]
+      ],
+      theme: 'grid',
+      headStyles: { fillColor: colorGraphite, fontSize: 11 },
+      styles: { fontSize: 10, cellPadding: 6 },
+      columnStyles: { 1: { halign:'right', fontStyle:'bold' } }
+    });
+    y = doc.lastAutoTable.finalY + 20;
+
+    // ---- Planes por chofer ----
+    doc.autoTable({
+      startY: y,
+      margin: { left: margin, right: margin },
+      head: [['Chofer', 'Planes cargados']],
+      body: d.listaChoferes.map(function(c){ return [c.nombre, String(c.cantidad)]; }),
+      theme: 'grid',
+      headStyles: { fillColor: colorGraphite, fontSize: 11 },
+      styles: { fontSize: 10, cellPadding: 6 },
+      columnStyles: { 1: { halign:'right' } }
+    });
+    y = doc.lastAutoTable.finalY + 20;
+
+    // ---- Distribucion de riesgo y Cumplimiento: graficos de torta, uno al lado del otro ----
+    if(y > 620){ doc.addPage(); y = 40; }
+
+    var mitadAncho = (pageWidth - margin*2) / 2;
+    var col1X = margin;
+    var col2X = margin + mitadAncho;
+    var pieSizePt = 110;
+
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'bold');
+    doc.setTextColor(colorGraphite[0], colorGraphite[1], colorGraphite[2]);
+    doc.text('Distribución de riesgo', col1X, y);
+    doc.text('Cumplimiento del Plan de Viaje', col2X, y);
+
+    var yPies = y + 12;
+    var imgRiesgo = crearImagenTorta([
+      { valor: d.conteoRiesgo.BAJO, color: '#1D9E75' },
+      { valor: d.conteoRiesgo.MEDIO, color: '#EF9F27' },
+      { valor: d.conteoRiesgo.CRITICO, color: '#C00000' }
+    ]);
+    var imgCumplimiento = crearImagenTorta([
+      { valor: d.cumplidos, color: '#1D9E75' },
+      { valor: d.demorados, color: '#C00000' }
+    ]);
+
+    doc.addImage(imgRiesgo, 'PNG', col1X, yPies, pieSizePt, pieSizePt);
+    doc.addImage(imgCumplimiento, 'PNG', col2X, yPies, pieSizePt, pieSizePt);
+
+    // Leyenda de riesgo (debajo de la primera torta)
+    var yLeyenda = yPies + pieSizePt + 16;
+    doc.setFontSize(9);
+    doc.setFont(undefined, 'normal');
+    var totalRPie = d.totalRiesgo || 1;
+    dibujarItemLeyenda(doc, col1X, yLeyenda, '#1D9E75', 'Bajo: ' + d.conteoRiesgo.BAJO + ' (' + (d.conteoRiesgo.BAJO/totalRPie*100).toFixed(0) + '%)');
+    dibujarItemLeyenda(doc, col1X, yLeyenda + 14, '#EF9F27', 'Medio: ' + d.conteoRiesgo.MEDIO + ' (' + (d.conteoRiesgo.MEDIO/totalRPie*100).toFixed(0) + '%)');
+    dibujarItemLeyenda(doc, col1X, yLeyenda + 28, '#C00000', 'Crítico: ' + d.conteoRiesgo.CRITICO + ' (' + (d.conteoRiesgo.CRITICO/totalRPie*100).toFixed(0) + '%)');
+
+    // Leyenda de cumplimiento (debajo de la segunda torta)
+    var totalCPie = d.totalValidosCumpl || 1;
+    dibujarItemLeyenda(doc, col2X, yLeyenda, '#1D9E75', 'Cumple: ' + d.cumplidos + ' (' + (d.cumplidos/totalCPie*100).toFixed(0) + '%)');
+    dibujarItemLeyenda(doc, col2X, yLeyenda + 14, '#C00000', 'No cumple: ' + d.demorados + ' (' + (d.demorados/totalCPie*100).toFixed(0) + '%)');
+
+    y = yLeyenda + 46;
+    doc.setTextColor(0,0,0);
+
+    // ---- Detalle de viajes finalizados ----
+    doc.setFontSize(9);
+    if(d.detalleFinalizados.length){
+      if(y > 680){ doc.addPage(); y = 40; }
+      doc.autoTable({
+        startY: y,
+        margin: { left: margin, right: margin },
+        head: [['Viaje finalizado', 'Estado', 'Detalle']],
+        body: d.detalleFinalizados.map(function(f){
+          var detalle = f.estado === 'INCOMPLETO' ? 'Dato incompleto' : (f.deltaMin <= 15 ? 'A tiempo' : '+' + f.deltaMin + ' min');
+          return [f.nombre + ' (N° ' + f.serial + ')', f.estado, detalle];
+        }),
+        theme: 'grid',
+        headStyles: { fillColor: colorGraphite, fontSize: 11 },
+        styles: { fontSize: 9, cellPadding: 5 }
+      });
+      y = doc.lastAutoTable.finalY + 20;
+    }
+
+    // ---- Analisis de criticidad por pilar ----
+    if(y > 650){ doc.addPage(); y = 40; }
+    doc.autoTable({
+      startY: y,
+      margin: { left: margin, right: margin },
+      head: [['Pilar de riesgo', 'Promedio', '% de criticidad']],
+      body: d.analisisPilares.map(function(p){
+        return [p.nombre, p.promedio.toFixed(1) + ' / ' + p.max, p.pct.toFixed(0) + '%'];
+      }),
+      theme: 'grid',
+      headStyles: { fillColor: colorGraphite, fontSize: 11 },
+      styles: { fontSize: 10, cellPadding: 6 },
+      didParseCell: function(dataArg){
+        if(dataArg.section === 'body' && dataArg.column.index === 2){
+          var pct = d.analisisPilares[dataArg.row.index].pct;
+          dataArg.cell.styles.textColor = pct >= 75 ? colorCritico : (pct >= 50 ? colorMedio : colorBajo);
+          dataArg.cell.styles.fontStyle = 'bold';
+        }
+      }
+    });
+    y = doc.lastAutoTable.finalY + 16;
+
+    if(d.analisisPilares.length){
+      doc.setFontSize(9);
+      doc.setTextColor(90,100,114);
+      doc.text('Pilar con mayor aporte relativo al riesgo: ' + d.analisisPilares[0].nombre, margin, y);
+    }
+
+    // ---- Pie de pagina en todas las paginas ----
+    var totalPaginas = doc.internal.getNumberOfPages();
+    for(var i = 1; i <= totalPaginas; i++){
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(150,150,150);
+      doc.text('Griffouliere S.A. · Sistema de Gestión Integrado', margin, 820);
+      doc.text('Página ' + i + ' de ' + totalPaginas, pageWidth - margin - 60, 820);
+    }
+
+    var nombreArchivo = 'Informe_Plan_de_Viaje_' + fechaParaInputDate(new Date()) + '.pdf';
+    doc.save(nombreArchivo);
+    mostrarToast('PDF generado correctamente', 'ok');
+  }
+</script>
+
+</body>
+</html>
