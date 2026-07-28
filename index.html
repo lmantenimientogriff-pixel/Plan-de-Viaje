@@ -187,6 +187,13 @@
   }
   input:focus,select:focus{ outline:none; border-color:var(--safety-orange); }
 
+  textarea{
+    width:100%; padding:14px 14px; border:1.5px solid var(--line); border-radius:10px;
+    font-size:16px; margin-bottom:14px; background:#fff; color:var(--ink);
+    font-family:inherit; resize:vertical; min-height:70px;
+  }
+  textarea:focus{ outline:none; border-color:var(--safety-orange); }
+
   .campo-fecha-editable{
     border:2px solid var(--safety-orange) !important;
     background:#fff5f5;
@@ -671,9 +678,9 @@
       if(v.estadoAutorizacion === 'PENDIENTE'){
         html += '<div class="status-banner status-pend">⏳ Requiere autorización de ' + v.rolAutoriza + ' (pendiente)</div>';
       } else if(v.estadoAutorizacion === 'APROBADO'){
-        html += '<div class="status-banner status-ok">✓ Autorizado por ' + v.aprobadorNombre + '</div>';
+        html += '<div class="status-banner status-ok">✓ Autorizado por ' + v.aprobadorNombre + (v.motivoAutorizacion ? ' — ' + v.motivoAutorizacion : '') + '</div>';
       } else if(v.estadoAutorizacion === 'RECHAZADO'){
-        html += '<div class="status-banner" style="background:var(--riesgo-critico-bg);color:var(--riesgo-critico);">✕ Viaje rechazado por ' + v.aprobadorNombre + '</div>';
+        html += '<div class="status-banner" style="background:var(--riesgo-critico-bg);color:var(--riesgo-critico);">✕ Viaje rechazado por ' + v.aprobadorNombre + (v.motivoAutorizacion ? ' — Motivo: ' + v.motivoAutorizacion : '') + '</div>';
       }
     }
 
@@ -801,6 +808,8 @@
       selectAprobadores(formId, v.rolAutoriza) +
       '<label>PIN</label>' +
       '<input type="password" inputmode="numeric" id="' + formId + '-pin" placeholder="PIN">' +
+      '<label>Motivo / Observación</label>' +
+      '<textarea id="' + formId + '-motivo" placeholder="Ej: ruta verificada con el chofer, condiciones aceptables..."></textarea>' +
       '<button class="btn btn-secondary" onclick="confirmarAutorizacion(\'' + v.serial + '\',\'' + formId + '\')">Confirmar firma</button>' +
       '</div>' +
       '</div>';
@@ -816,11 +825,13 @@
   function confirmarAutorizacion(serial, formId){
     var nombre = document.getElementById(formId + '-nombre').value.trim();
     var pin = document.getElementById(formId + '-pin').value.trim();
+    var motivo = document.getElementById(formId + '-motivo').value.trim();
     var decision = decisionActual[formId];
 
     if(!nombre || !pin){ mostrarToast('Completá tu nombre y PIN', 'err'); return; }
+    if(decision === 'RECHAZADO' && !motivo){ mostrarToast('Para rechazar un viaje es obligatorio indicar el motivo', 'err'); return; }
 
-    apiGet({ action:'autorizarViaje', serial: serial, nombre: nombre, pin: pin, decision: decision })
+    apiGet({ action:'autorizarViaje', serial: serial, nombre: nombre, pin: pin, decision: decision, motivo: motivo })
       .then(function(res){
         if(res.ok){
           mostrarToast(res.mensaje, 'ok');
@@ -1127,19 +1138,10 @@
     // ---- Listado general de viajes ----
     viajesListadoActual = viajes;
     html += '<div class="card"><h2>Listado general de viajes</h2><p>Detalle completo de cada plan: fechas, cumplimiento, criticidad, puntaje por pilar y autorización.</p>' +
-      '<input type="text" id="buscarListado" placeholder="Buscar por chofer..." oninput="filtrarListadoGeneral()">' +
       '<div id="listadoGeneralContenedor">' + construirListadoGeneralHTML(viajes) + '</div>' +
       '</div>';
 
     document.getElementById('dashboardContenido').innerHTML = html;
-  }
-
-  function filtrarListadoGeneral(){
-    var texto = document.getElementById('buscarListado').value.trim().toUpperCase();
-    var filtrados = texto ?
-      viajesListadoActual.filter(function(v){ return (v.conductorNombre || '').toUpperCase().indexOf(texto) !== -1; }) :
-      viajesListadoActual;
-    document.getElementById('listadoGeneralContenedor').innerHTML = construirListadoGeneralHTML(filtrados);
   }
 
   function calcularCumplimientoViaje(v){
@@ -1178,10 +1180,10 @@
         autorizacionTxt = 'Pendiente (' + v.rolAutoriza + ')';
         autorizacionColor = 'var(--riesgo-medio)';
       } else if(v.estadoAutorizacion === 'APROBADO'){
-        autorizacionTxt = 'Aprobado por ' + v.aprobadorNombre;
+        autorizacionTxt = 'Aprobado por ' + v.aprobadorNombre + (v.motivoAutorizacion ? ' — ' + v.motivoAutorizacion : '');
         autorizacionColor = 'var(--riesgo-bajo)';
       } else if(v.estadoAutorizacion === 'RECHAZADO'){
-        autorizacionTxt = 'Rechazado por ' + v.aprobadorNombre;
+        autorizacionTxt = 'Rechazado por ' + v.aprobadorNombre + (v.motivoAutorizacion ? ' — ' + v.motivoAutorizacion : '');
         autorizacionColor = 'var(--riesgo-critico)';
       }
     }
@@ -1232,12 +1234,14 @@
   function confirmarAutorizacionListado(serial, formId){
     var nombre = document.getElementById(formId + '-nombre').value.trim();
     var pin = document.getElementById(formId + '-pin').value.trim();
+    var motivo = document.getElementById(formId + '-motivo').value.trim();
     var decision = decisionActual[formId];
 
     if(!nombre || !pin){ mostrarToast('Completá tu nombre y PIN', 'err'); return; }
     if(!decision){ mostrarToast('Elegí Autorizar o Rechazar primero', 'err'); return; }
+    if(decision === 'RECHAZADO' && !motivo){ mostrarToast('Para rechazar un viaje es obligatorio indicar el motivo', 'err'); return; }
 
-    apiGet({ action:'autorizarViaje', serial: serial, nombre: nombre, pin: pin, decision: decision })
+    apiGet({ action:'autorizarViaje', serial: serial, nombre: nombre, pin: pin, decision: decision, motivo: motivo })
       .then(function(res){
         if(res.ok){
           mostrarToast(res.mensaje, 'ok');
@@ -1280,6 +1284,7 @@
           '<div class="approve-form" id="' + authFormId + '">' +
           '<label>Tu nombre (como responsable)</label>' + selectAprobadores(authFormId, v.rolAutoriza) +
           '<label>PIN</label><input type="password" inputmode="numeric" id="' + authFormId + '-pin" placeholder="PIN">' +
+          '<label>Motivo / Observación</label><textarea id="' + authFormId + '-motivo" placeholder="Ej: ruta verificada con el chofer, condiciones aceptables..."></textarea>' +
           '<button class="btn btn-secondary" onclick="confirmarAutorizacionListado(\'' + v.serial + '\',\'' + authFormId + '\')">Confirmar firma</button>' +
           '</div>';
       }
@@ -1313,6 +1318,7 @@
           '<div class="approve-form approve-form-inline" id="' + authFormId + '">' +
           '<div class="field-inline"><label>Tu nombre (como responsable)</label>' + selectAprobadores(authFormId, v.rolAutoriza) + '</div>' +
           '<div class="field-inline"><label>PIN</label><input type="password" inputmode="numeric" id="' + authFormId + '-pin" placeholder="PIN"></div>' +
+          '<div class="field-inline" style="flex-basis:100%;max-width:480px;"><label>Motivo / Observación</label><textarea id="' + authFormId + '-motivo" placeholder="Ej: ruta verificada con el chofer, condiciones aceptables..."></textarea></div>' +
           '<button class="btn btn-secondary" onclick="confirmarAutorizacionListado(\'' + v.serial + '\',\'' + authFormId + '\')">Confirmar firma</button>' +
           '</div></div>';
       }
