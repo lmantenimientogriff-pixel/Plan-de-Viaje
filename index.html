@@ -664,7 +664,7 @@
     var motivos = [];
     if(v.elevadoPorSomnolencia) motivos.push('somnolencia del conductor');
     if(v.elevadoPorBienestar) motivos.push('bienestar del conductor (No en condiciones óptimas)');
-    return '<p style="margin:8px 0 0;font-size:12px;font-weight:600;color:var(--riesgo-critico);">⚠️ Nivel elevado por ' + motivos.join(' y ') + ', independientemente del puntaje.</p>';
+    return '<div class="status-banner" style="background:var(--riesgo-critico-bg);color:var(--riesgo-critico);">⚠️ Nivel elevado por ' + motivos.join(' y ') + ', independientemente del puntaje.</div>';
   }
 
   // Texto y color para el indicador de cumplimiento de conduccion continua (parada <= 2:15 hs desde el inicio)
