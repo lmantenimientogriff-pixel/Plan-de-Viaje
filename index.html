@@ -456,6 +456,7 @@
   var viajesActivos = [];
   var conductorActual = '';
   var aprobadoresCache = null;
+  var ubicacionInicioPendiente = null; // promesa de geolocalizacion disparada por el toque de "Buscar mi viaje"
 
   function obtenerAprobadores(){
     if(aprobadoresCache) return Promise.resolve(aprobadoresCache);
@@ -667,6 +668,10 @@
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span> Buscando...';
 
+    // Se dispara ACA, en respuesta directa al toque del boton: el permiso del navegador
+    // solo aparece si el pedido sale sin pasos intermedios (fetch, promesas, etc.) de por medio.
+    ubicacionInicioPendiente = obtenerUbicacion();
+
     apiGet({ action:'listarViajesActivos', nombre: nombre })
       .then(function(res){
         btn.disabled = false;
@@ -719,7 +724,8 @@
   // y el viaje esta recien iniciado, la captura en segundo plano (no bloquea nada).
   function intentarRegistrarUbicacionInicio(v){
     if(!v || v.estadoViaje !== 'INICIADO' || v.estadoGpsInicio){ return; }
-    obtenerUbicacion().then(function(loc){
+    var promesa = ubicacionInicioPendiente || obtenerUbicacion();
+    promesa.then(function(loc){
       apiGet({
         action:'registrarUbicacionInicio', serial: v.serial,
         lat: loc.lat, lng: loc.lng, precision: loc.precision,
