@@ -355,7 +355,13 @@
   <div class="view active" id="view-home">
 
     <div class="card">
-      <h2>1. Antes de salir</h2>
+      <h2>1. Corroborar el clima de la zona</h2>
+      <p>Revisá el clima actual en tu ubicación antes de completar el Plan de Viaje — te sirve de referencia para el factor "Clima" del formulario.</p>
+      <button class="btn btn-secondary" onclick="verClima()">Ver Clima Actual →</button>
+    </div>
+
+    <div class="card">
+      <h2>2. Antes de salir</h2>
       <p>Completá el Plan de Viaje: origen, destino, checklist del vehículo y condiciones. El nivel de riesgo se calcula solo.</p>
       <a class="btn btn-primary" href="https://app.moreapp.com/form/6a0781f4d927e1cfddaa9358" target="_blank" rel="noopener">
         Completar Plan de Viaje →
@@ -368,21 +374,30 @@
     </div>
 
     <div class="card">
-      <h2>2. Durante el viaje</h2>
+      <h2>3. Durante el viaje</h2>
       <p>Buscá tu viaje por tu nombre para confirmar la parada de descanso y finalizar cuando llegues a destino.</p>
       <button class="btn btn-secondary" onclick="goTo('view-mi-viaje')">Gestionar mi Viaje →</button>
     </div>
 
     <div class="card">
-      <h2>3. Autorización de viajes</h2>
+      <h2>4. Autorización de viajes</h2>
       <p>Si sos Supervisor o Líder de Operaciones, entrá acá para revisar y firmar los viajes en nivel MEDIO o CRÍTICO.</p>
       <button class="btn btn-ghost" onclick="goTo('view-supervisor')">Panel de Autorizaciones →</button>
     </div>
 
     <div class="card">
-      <h2>4. Dashboard e indicadores</h2>
+      <h2>5. Dashboard e indicadores</h2>
       <p>Planes por chofer, distribución de riesgo y cumplimiento de horarios de llegada.</p>
       <button class="btn btn-ghost" onclick="goTo('view-dashboard')">Ver Dashboard →</button>
+    </div>
+  </div>
+
+  <!-- ================= VISTA CLIMA ================= -->
+  <div class="view" id="view-clima">
+    <div class="card">
+      <h2>Clima actual en tu zona</h2>
+      <p>Se usa tu ubicación actual para mostrar el clima en tiempo real, como apoyo para completar el Plan de Viaje.</p>
+      <div id="climaContenido"></div>
     </div>
   </div>
 
@@ -506,6 +521,9 @@
     if(viewId === 'view-home'){
       back.classList.remove('show');
       title.textContent = 'Plan de Viaje';
+    } else if(viewId === 'view-clima'){
+      back.classList.add('show');
+      title.textContent = 'Clima';
     } else if(viewId === 'view-mi-viaje'){
       back.classList.add('show');
       title.textContent = 'Mi Viaje';
@@ -568,6 +586,66 @@
     return ' ⚠️ Sin ubicación (' + loc.estadoGps.toLowerCase() + ').';
   }
 
+  // =====================================================================
+  // CLIMA (paso 1) — Open-Meteo, gratuito, sin API key, con CORS habilitado
+  // =====================================================================
+  var MAPA_CLIMA = {
+    0:['Despejado','☀️'], 1:['Mayormente despejado','🌤️'], 2:['Parcialmente nublado','⛅'], 3:['Nublado','☁️'],
+    45:['Niebla','🌫️'], 48:['Niebla con escarcha','🌫️'],
+    51:['Llovizna débil','🌦️'], 53:['Llovizna','🌦️'], 55:['Llovizna intensa','🌧️'],
+    56:['Llovizna helada','🌧️'], 57:['Llovizna helada intensa','🌧️'],
+    61:['Lluvia débil','🌧️'], 63:['Lluvia','🌧️'], 65:['Lluvia intensa','🌧️'],
+    66:['Lluvia helada','🌧️'], 67:['Lluvia helada intensa','🌧️'],
+    71:['Nevada débil','🌨️'], 73:['Nevada','🌨️'], 75:['Nevada intensa','❄️'], 77:['Granizo pequeño','🌨️'],
+    80:['Chubascos débiles','🌦️'], 81:['Chubascos','🌧️'], 82:['Chubascos intensos','⛈️'],
+    85:['Chubascos de nieve débiles','🌨️'], 86:['Chubascos de nieve intensos','❄️'],
+    95:['Tormenta','⛈️'], 96:['Tormenta con granizo','⛈️'], 99:['Tormenta fuerte con granizo','⛈️'],
+  };
+  function descripcionClima(codigo){
+    return MAPA_CLIMA[codigo] || ['Condición no disponible', '🌡️'];
+  }
+
+  // Se llama directo desde el onclick del boton, asi el pedido de ubicacion sale
+  // en respuesta inmediata al toque (mismo criterio que en Mi Viaje).
+  function verClima(){
+    goTo('view-clima');
+    var cont = document.getElementById('climaContenido');
+    cont.innerHTML = '<div class="empty"><span class="spinner" style="border-top-color:var(--ink-soft);border-color:rgba(28,33,40,.15);"></span><br><br>Obteniendo tu ubicación...</div>';
+
+    obtenerUbicacion().then(function(loc){
+      if(loc.estadoGps !== 'CAPTURADO'){
+        cont.innerHTML = '<div class="empty">No se pudo obtener tu ubicación (' + loc.estadoGps.toLowerCase() + ').<br>Revisá los permisos de ubicación del navegador e intentá de nuevo.</div>' +
+          '<button class="btn btn-ghost" style="margin-top:14px;" onclick="verClima()">↻ Reintentar</button>';
+        return;
+      }
+      cont.innerHTML = '<div class="empty">Consultando el clima...</div>';
+      fetch('https://api.open-meteo.com/v1/forecast?latitude=' + loc.lat + '&longitude=' + loc.lng + '&current_weather=true&timezone=auto')
+        .then(function(r){ return r.json(); })
+        .then(function(data){
+          if(!data || !data.current_weather){ throw new Error('sin datos'); }
+          renderClima(data.current_weather, loc);
+        })
+        .catch(function(){
+          cont.innerHTML = '<div class="empty">No se pudo consultar el servicio de clima. Probá de nuevo.</div>' +
+            '<button class="btn btn-ghost" style="margin-top:14px;" onclick="verClima()">↻ Reintentar</button>';
+        });
+    });
+  }
+
+  function renderClima(cw, loc){
+    var desc = descripcionClima(cw.weathercode);
+    var html = '<div class="card" style="text-align:center;margin-top:6px;">' +
+      '<div style="font-size:52px;line-height:1;">' + desc[1] + '</div>' +
+      '<div style="font-size:34px;font-weight:800;margin:10px 0 2px;">' + Math.round(cw.temperature) + '°C</div>' +
+      '<div style="color:var(--ink-soft);font-size:14px;margin-bottom:16px;">' + desc[0] + '</div>' +
+      '<div class="kv"><span class="k">Viento</span><span class="v">' + Math.round(cw.windspeed) + ' km/h</span></div>' +
+      '<div class="kv"><span class="k">Hora del dato</span><span class="v">' + formatoFecha(cw.time) + '</span></div>' +
+      '<div class="kv"><span class="k">Precisión de tu ubicación</span><span class="v">±' + loc.precision + ' m</span></div>' +
+      '</div>' +
+      '<button class="btn btn-ghost" style="margin-top:10px;" onclick="verClima()">↻ Actualizar clima</button>';
+    document.getElementById('climaContenido').innerHTML = html;
+  }
+
   function mostrarToast(msg, tipo){
     var t = document.getElementById('toast');
     t.textContent = msg;
@@ -578,6 +656,12 @@
   function badgeRiesgo(estado){
     var cls = estado === 'CRITICO' ? 'badge-critico' : (estado === 'MEDIO' ? 'badge-medio' : 'badge-bajo');
     return '<span class="badge ' + cls + '">' + estado + '</span>';
+  }
+
+  // Aviso corto cuando el nivel de riesgo quedo elevado por la regla de somnolencia (no por el puntaje)
+  function notaSomnolencia(v){
+    if(!v.elevadoPorSomnolencia) return '';
+    return '<p style="margin:8px 0 0;font-size:12px;font-weight:600;color:var(--riesgo-critico);">⚠️ Nivel elevado por somnolencia del conductor, independientemente del puntaje.</p>';
   }
 
   // Texto y color para el indicador de cumplimiento de conduccion continua (parada <= 2:15 hs desde el inicio)
@@ -764,6 +848,7 @@
     html += '<div class="trip-header"><div><div class="name">' + v.conductorNombre + '</div>' +
             '<div class="id">Viaje N° ' + v.serial + '</div></div>' +
             badgeRiesgo(v.nivelRiesgoEstado) + '</div>';
+    html += notaSomnolencia(v);
 
     if(v.requiereAutorizacion){
       if(v.estadoAutorizacion === 'PENDIENTE'){
@@ -914,6 +999,7 @@
     return '<div class="card">' +
       '<div class="trip-header"><div><div class="name">' + v.conductorNombre + '</div>' +
       '<div class="id">Viaje N° ' + v.serial + '</div></div>' + badgeRiesgo(v.nivelRiesgoEstado) + '</div>' +
+      notaSomnolencia(v) +
       '<div class="kv"><span class="k">Fecha de inicio</span><span class="v">' + formatoFecha(v.inicioViaje) + '</span></div>' +
       '<div class="kv"><span class="k">Origen → Destino</span><span class="v">' + (v.origen||'—') + ' → ' + (v.destino||'—') + '</span></div>' +
       '<div class="kv"><span class="k">Cliente</span><span class="v">' + (v.cliente||'—') + '</span></div>' +
@@ -1394,6 +1480,7 @@
 
       htmlMobile += '<div class="card" style="margin-bottom:10px;">' +
         '<div class="trip-header"><div><div class="name">' + v.conductorNombre + '</div><div class="id">Viaje N° ' + v.serial + '</div></div>' + badgeRiesgo(v.nivelRiesgoEstado) + '</div>' +
+        notaSomnolencia(v) +
         '<div class="kv"><span class="k">Estado del viaje</span><span class="v">' + v.estadoViaje + '</span></div>' +
         '<div class="kv"><span class="k">Inicio</span><span class="v">' + formatoFecha(v.inicioViaje) + '</span></div>' +
         '<div class="kv"><span class="k">Fin estimado</span><span class="v">' + formatoFecha(v.finEstimado) + '</span></div>' +
@@ -1437,7 +1524,8 @@
       var infoParada = textoCumplimientoParada(v);
       var infoGps = textoDistanciaGps(v);
       var infoGpsTotal = textoDistanciaTotalGps(v);
-      var contenidoDetalle = (infoParada ? '<p style="margin:0 0 6px;font-size:13px;font-weight:600;color:' + infoParada.color + ';">' + infoParada.icono + ' ' + infoParada.texto + '</p>' : '') +
+      var contenidoDetalle = (v.elevadoPorSomnolencia ? '<p style="margin:0 0 10px;font-size:13px;font-weight:700;color:var(--riesgo-critico);">⚠️ Nivel elevado por somnolencia del conductor, independientemente del puntaje.</p>' : '') +
+        (infoParada ? '<p style="margin:0 0 6px;font-size:13px;font-weight:600;color:' + infoParada.color + ';">' + infoParada.icono + ' ' + infoParada.texto + '</p>' : '') +
         (infoGps ? '<p style="margin:0 0 6px;font-size:12.5px;color:' + infoGps.color + ';">' + infoGps.icono + ' ' + infoGps.texto + '</p>' : '') +
         (infoGpsTotal ? '<p style="margin:0 0 14px;font-size:12.5px;color:' + infoGpsTotal.color + ';">' + infoGpsTotal.icono + ' ' + infoGpsTotal.texto + '</p>' : '') +
         '<div class="pilares-grid">' + htmlPilaresBarras(v) + '</div>';
