@@ -531,6 +531,35 @@
     return fetch(url).then(function(r){ return r.json(); });
   }
 
+  // Pide la ubicacion al navegador. NUNCA rechaza la promesa: si falla, resuelve
+  // con estadoGps identificando el motivo, para que el flujo del chofer no se corte nunca.
+  function obtenerUbicacion(){
+    return new Promise(function(resolve){
+      if(!navigator.geolocation){
+        resolve({ lat:'', lng:'', precision:'', estadoGps:'NO DISPONIBLE EN EL DISPOSITIVO', fechaHoraGps: new Date().toISOString() });
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        function(pos){
+          resolve({
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+            precision: Math.round(pos.coords.accuracy),
+            estadoGps: 'CAPTURADO',
+            fechaHoraGps: new Date(pos.timestamp).toISOString(),
+          });
+        },
+        function(err){
+          var estado = 'SIN SEÑAL';
+          if(err.code === err.PERMISSION_DENIED) estado = 'SIN PERMISO';
+          else if(err.code === err.TIMEOUT) estado = 'TIEMPO AGOTADO';
+          resolve({ lat:'', lng:'', precision:'', estadoGps: estado, fechaHoraGps: new Date().toISOString() });
+        },
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+      );
+    });
+  }
+
   function mostrarToast(msg, tipo){
     var t = document.getElementById('toast');
     t.textContent = msg;
@@ -552,6 +581,38 @@
       case 'DATO INCOMPLETO': return { texto: 'Dato incompleto para calcular el cumplimiento', color: 'var(--ink-soft)', icono: 'ℹ️' };
       default: return null; // NO APLICA
     }
+  }
+
+  // Texto/color para la distancia total del viaje (inicio -> fin), independiente de si hubo parada
+  function textoDistanciaTotalGps(v){
+    if(v.estadoViaje !== 'FINALIZADO') return null; // solo tiene sentido una vez finalizado
+
+    if(v.distanciaInicioFinKm !== null && v.distanciaInicioFinKm !== undefined && v.distanciaInicioFinKm !== ''){
+      return { texto: 'Distancia total del viaje (GPS): ' + v.distanciaInicioFinKm + ' km', color: 'var(--ink-soft)', icono: '🏁' };
+    }
+    var motivos = [];
+    if(!v.estadoGpsInicio) motivos.push('inicio pendiente');
+    else if(v.estadoGpsInicio !== 'CAPTURADO') motivos.push('inicio: ' + v.estadoGpsInicio.toLowerCase());
+    if(!v.estadoGpsFin) motivos.push('fin pendiente');
+    else if(v.estadoGpsFin !== 'CAPTURADO') motivos.push('fin: ' + v.estadoGpsFin.toLowerCase());
+    if(!motivos.length) return null;
+    return { texto: 'Sin distancia total por GPS (' + motivos.join(' · ') + ')', color: 'var(--ink-soft)', icono: '🏁' };
+  }
+
+  // Texto/color para mostrar la distancia GPS entre inicio y parada, o el motivo si no hay dato
+  function textoDistanciaGps(v){
+    if(v.requiereParada !== 'SI') return null; // no aplica si el tramo no requeria parada
+
+    if(v.distanciaInicioParadaKm !== null && v.distanciaInicioParadaKm !== undefined && v.distanciaInicioParadaKm !== ''){
+      return { texto: 'Distancia recorrida hasta la parada (GPS): ' + v.distanciaInicioParadaKm + ' km', color: 'var(--ink-soft)', icono: '📍' };
+    }
+    var motivos = [];
+    if(!v.estadoGpsInicio) motivos.push('inicio pendiente');
+    else if(v.estadoGpsInicio !== 'CAPTURADO') motivos.push('inicio: ' + v.estadoGpsInicio.toLowerCase());
+    if(!v.estadoGpsParada) motivos.push('parada pendiente');
+    else if(v.estadoGpsParada !== 'CAPTURADO') motivos.push('parada: ' + v.estadoGpsParada.toLowerCase());
+    if(!motivos.length) return null;
+    return { texto: 'Sin distancia por GPS (' + motivos.join(' · ') + ')', color: 'var(--ink-soft)', icono: '📍' };
   }
 
   function formatoFecha(valor){
@@ -651,6 +712,22 @@
   function abrirDetalleViaje(idx){
     currentViaje = viajesActivos[idx];
     renderViaje(currentViaje);
+    intentarRegistrarUbicacionInicio(currentViaje);
+  }
+
+  // Se llama una sola vez por viaje: si todavia no hay ubicacion de inicio guardada
+  // y el viaje esta recien iniciado, la captura en segundo plano (no bloquea nada).
+  function intentarRegistrarUbicacionInicio(v){
+    if(!v || v.estadoViaje !== 'INICIADO' || v.estadoGpsInicio){ return; }
+    obtenerUbicacion().then(function(loc){
+      apiGet({
+        action:'registrarUbicacionInicio', serial: v.serial,
+        lat: loc.lat, lng: loc.lng, precision: loc.precision,
+        estadoGps: loc.estadoGps, fechaHoraGps: loc.fechaHoraGps,
+      }).then(function(){
+        v.estadoGpsInicio = loc.estadoGps; // evita repetir el pedido si se vuelve a abrir esta misma pantalla
+      });
+    });
   }
 
   function volverALista(){
@@ -690,6 +767,10 @@
     }
 
     html += '<div class="kv"><span class="k">Fecha de inicio</span><span class="v">' + formatoFecha(v.inicioViaje) + '</span></div>';
+    var distGps = textoDistanciaGps(v);
+    if(distGps){
+      html += '<div class="kv"><span class="k">' + distGps.icono + ' Ubicación</span><span class="v" style="color:' + distGps.color + ';font-size:12.5px;">' + distGps.texto + '</span></div>';
+    }
     html += '<div class="kv"><span class="k">Origen</span><span class="v">' + (v.origen||'—') + '</span></div>';
     html += '<div class="kv"><span class="k">Destino</span><span class="v">' + (v.destino||'—') + '</span></div>';
     html += '<div class="kv"><span class="k">Cliente</span><span class="v">' + (v.cliente||'—') + '</span></div>';
@@ -708,12 +789,16 @@
     // Acciones segun estado
     if(v.estadoViaje === 'FINALIZADO'){
       html += '<div class="card status-banner status-ok" style="margin-bottom:0;">✓ Este viaje ya fue finalizado.</div>';
+      var distTotal = textoDistanciaTotalGps(v);
+      if(distTotal){
+        html += '<div class="card" style="margin-top:10px;"><span style="color:' + distTotal.color + ';font-size:13px;">' + distTotal.icono + ' ' + distTotal.texto + '</span></div>';
+      }
     } else if(v.estadoViaje === 'INICIADO' && v.requiereParada === 'SI'){
       html += '<div class="card"><h2>Parada de descanso</h2><p>Confirmá cuándo hiciste la parada de descanso en el tramo mayor a 2:15 hs.</p>' +
               '<label>Fecha y hora de la parada</label>' +
               '<input type="datetime-local" class="campo-fecha-editable" id="fechaParada" value="' + ahoraParaInput() + '">' +
               '<p class="hint-editable">✏️ Ya viene con la hora de ahora — tocá el campo para cambiarla si confirmás más tarde</p>' +
-              '<button class="btn btn-primary" onclick="accionViaje(\'confirmarParada\', document.getElementById(\'fechaParada\').value)" id="btnParada">Confirmar Parada de Descanso</button></div>';
+              '<button class="btn btn-primary" onclick="confirmarParadaClick()" id="btnParada">Confirmar Parada de Descanso</button></div>';
     } else {
       html += '<div class="card"><h2>Fin del viaje</h2><p>Confirmá cuándo llegaste a destino.</p>' +
               '<label>Fecha y hora de finalización</label>' +
@@ -731,12 +816,35 @@
     var fechaElegida = document.getElementById('fechaFin').value;
     box.innerHTML = '<p style="margin-top:12px;">¿Confirmás que el viaje terminó el ' + formatoFecha(fechaElegida) + '?</p>' +
       '<div class="btn-row"><button class="btn btn-ghost btn-sm" onclick="document.getElementById(\'confirmFinBox\').innerHTML=\'\'">Cancelar</button>' +
-      '<button class="btn btn-ok btn-sm" onclick="accionViaje(\'finalizarViaje\', document.getElementById(\'fechaFin\').value)">Sí, finalizar</button></div>';
+      '<button class="btn btn-ok btn-sm" id="btnConfirmarFinSi" onclick="confirmarFinClick()">Sí, finalizar</button></div>';
   }
 
-  function accionViaje(accion, fechaHora){
+  function confirmarFinClick(){
+    var btn = document.getElementById('btnConfirmarFinSi');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Finalizando...';
+    obtenerUbicacion().then(function(loc){
+      accionViaje('finalizarViaje', document.getElementById('fechaFin').value, loc);
+    });
+  }
+
+  function confirmarParadaClick(){
+    var btn = document.getElementById('btnParada');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Confirmando...';
+    obtenerUbicacion().then(function(loc){
+      accionViaje('confirmarParada', document.getElementById('fechaParada').value, loc);
+    });
+  }
+
+  function accionViaje(accion, fechaHora, loc){
     if(!currentViaje) return;
-    apiGet({ action: accion, serial: currentViaje.serial, fechaHora: fechaHora })
+    var params = { action: accion, serial: currentViaje.serial, fechaHora: fechaHora };
+    if(loc){
+      params.lat = loc.lat; params.lng = loc.lng; params.precision = loc.precision;
+      params.estadoGps = loc.estadoGps; params.fechaHoraGps = loc.fechaHoraGps;
+    }
+    apiGet(params)
       .then(function(res){
         if(res.ok){
           mostrarToast(res.mensaje, 'ok');
@@ -750,9 +858,13 @@
           }
         } else {
           mostrarToast(res.error || 'No se pudo completar la acción', 'err');
+          renderViaje(currentViaje); // restaura los botones si algo fallo
         }
       })
-      .catch(function(){ mostrarToast('No se pudo conectar con el sistema.', 'err'); });
+      .catch(function(){
+        mostrarToast('No se pudo conectar con el sistema.', 'err');
+        renderViaje(currentViaje);
+      });
   }
 
   // =====================================================================
@@ -795,6 +907,7 @@
       '<div class="kv"><span class="k">Tiempo estimado de viaje</span><span class="v">' + (v.horasEstimadas ? v.horasEstimadas + ' hs' : '—') + '</span></div>' +
       '<div class="kv"><span class="k">Parada de descanso planificada</span><span class="v">' + paradaTxt + '</span></div>' +
       (textoCumplimientoParada(v) ? '<div class="kv"><span class="k">Conducción continua</span><span class="v" style="color:' + textoCumplimientoParada(v).color + ';">' + textoCumplimientoParada(v).icono + ' ' + textoCumplimientoParada(v).texto + '</span></div>' : '') +
+      (textoDistanciaGps(v) ? '<div class="kv"><span class="k">Ubicación</span><span class="v" style="color:' + textoDistanciaGps(v).color + ';font-size:12px;">' + textoDistanciaGps(v).icono + ' ' + textoDistanciaGps(v).texto + '</span></div>' : '') +
       '<div class="kv"><span class="k">Puntaje de riesgo</span><span class="v">' + v.nivelRiesgoPuntos + ' pts</span></div>' +
       '<div class="kv"><span class="k">Autoriza</span><span class="v">' + v.rolAutoriza + '</span></div>' +
       '<button class="btn btn-ghost btn-sm" style="width:100%;margin-top:12px;" onclick="document.getElementById(\'' + motivoId + '\').classList.toggle(\'show\')">Ver motivo del riesgo ▾</button>' +
@@ -1274,7 +1387,9 @@
         '<div class="kv"><span class="k">Cumplimiento</span><span class="v" style="color:' + cumplimiento.color + ';">' + cumplimiento.texto + '</span></div>' +
         '<div class="kv"><span class="k">Puntaje total</span><span class="v">' + (v.nivelRiesgoPuntos || '—') + ' pts</span></div>' +
         '<div class="kv"><span class="k">Autorización</span><span class="v" style="color:' + autorizacion.color + ';">' + autorizacion.texto + '</span></div>' +
-        (textoCumplimientoParada(v) ? '<div class="kv"><span class="k">Conducción continua</span><span class="v" style="color:' + textoCumplimientoParada(v).color + ';">' + textoCumplimientoParada(v).icono + ' ' + textoCumplimientoParada(v).texto + '</span></div>' : '');
+        (textoCumplimientoParada(v) ? '<div class="kv"><span class="k">Conducción continua</span><span class="v" style="color:' + textoCumplimientoParada(v).color + ';">' + textoCumplimientoParada(v).icono + ' ' + textoCumplimientoParada(v).texto + '</span></div>' : '') +
+        (textoDistanciaGps(v) ? '<div class="kv"><span class="k">Ubicación</span><span class="v" style="color:' + textoDistanciaGps(v).color + ';font-size:12px;">' + textoDistanciaGps(v).icono + ' ' + textoDistanciaGps(v).texto + '</span></div>' : '') +
+        (textoDistanciaTotalGps(v) ? '<div class="kv"><span class="k">Distancia total</span><span class="v" style="color:' + textoDistanciaTotalGps(v).color + ';font-size:12px;">' + textoDistanciaTotalGps(v).icono + ' ' + textoDistanciaTotalGps(v).texto + '</span></div>' : '');
 
       if(pendienteAuth){
         htmlMobile += '<div class="btn-row" style="margin-top:10px;">' +
@@ -1306,7 +1421,11 @@
       var pendienteAuth = v.requiereAutorizacion && v.estadoAutorizacion === 'PENDIENTE';
 
       var infoParada = textoCumplimientoParada(v);
-      var contenidoDetalle = (infoParada ? '<p style="margin:0 0 14px;font-size:13px;font-weight:600;color:' + infoParada.color + ';">' + infoParada.icono + ' ' + infoParada.texto + '</p>' : '') +
+      var infoGps = textoDistanciaGps(v);
+      var infoGpsTotal = textoDistanciaTotalGps(v);
+      var contenidoDetalle = (infoParada ? '<p style="margin:0 0 6px;font-size:13px;font-weight:600;color:' + infoParada.color + ';">' + infoParada.icono + ' ' + infoParada.texto + '</p>' : '') +
+        (infoGps ? '<p style="margin:0 0 6px;font-size:12.5px;color:' + infoGps.color + ';">' + infoGps.icono + ' ' + infoGps.texto + '</p>' : '') +
+        (infoGpsTotal ? '<p style="margin:0 0 14px;font-size:12.5px;color:' + infoGpsTotal.color + ';">' + infoGpsTotal.icono + ' ' + infoGpsTotal.texto + '</p>' : '') +
         '<div class="pilares-grid">' + htmlPilaresBarras(v) + '</div>';
       if(pendienteAuth){
         contenidoDetalle += '<div style="margin-top:16px;padding-top:16px;border-top:1px dashed var(--line);">' +
