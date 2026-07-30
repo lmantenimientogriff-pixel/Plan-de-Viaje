@@ -658,10 +658,13 @@
     return '<span class="badge ' + cls + '">' + estado + '</span>';
   }
 
-  // Aviso corto cuando el nivel de riesgo quedo elevado por la regla de somnolencia (no por el puntaje)
+  // Aviso corto cuando el nivel de riesgo quedo elevado por una regla de seguridad (no por el puntaje)
   function notaSomnolencia(v){
-    if(!v.elevadoPorSomnolencia) return '';
-    return '<p style="margin:8px 0 0;font-size:12px;font-weight:600;color:var(--riesgo-critico);">⚠️ Nivel elevado por somnolencia del conductor, independientemente del puntaje.</p>';
+    if(!v.elevadoPorSomnolencia && !v.elevadoPorBienestar) return '';
+    var motivos = [];
+    if(v.elevadoPorSomnolencia) motivos.push('somnolencia del conductor');
+    if(v.elevadoPorBienestar) motivos.push('bienestar del conductor (No en condiciones óptimas)');
+    return '<p style="margin:8px 0 0;font-size:12px;font-weight:600;color:var(--riesgo-critico);">⚠️ Nivel elevado por ' + motivos.join(' y ') + ', independientemente del puntaje.</p>';
   }
 
   // Texto y color para el indicador de cumplimiento de conduccion continua (parada <= 2:15 hs desde el inicio)
@@ -1524,7 +1527,7 @@
       var infoParada = textoCumplimientoParada(v);
       var infoGps = textoDistanciaGps(v);
       var infoGpsTotal = textoDistanciaTotalGps(v);
-      var contenidoDetalle = (v.elevadoPorSomnolencia ? '<p style="margin:0 0 10px;font-size:13px;font-weight:700;color:var(--riesgo-critico);">⚠️ Nivel elevado por somnolencia del conductor, independientemente del puntaje.</p>' : '') +
+      var contenidoDetalle = notaSomnolencia(v) +
         (infoParada ? '<p style="margin:0 0 6px;font-size:13px;font-weight:600;color:' + infoParada.color + ';">' + infoParada.icono + ' ' + infoParada.texto + '</p>' : '') +
         (infoGps ? '<p style="margin:0 0 6px;font-size:12.5px;color:' + infoGps.color + ';">' + infoGps.icono + ' ' + infoGps.texto + '</p>' : '') +
         (infoGpsTotal ? '<p style="margin:0 0 14px;font-size:12.5px;color:' + infoGpsTotal.color + ';">' + infoGpsTotal.icono + ' ' + infoGpsTotal.texto + '</p>' : '') +
