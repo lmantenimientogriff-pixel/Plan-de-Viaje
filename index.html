@@ -556,9 +556,16 @@
           else if(err.code === err.TIMEOUT) estado = 'TIEMPO AGOTADO';
           resolve({ lat:'', lng:'', precision:'', estadoGps: estado, fechaHoraGps: new Date().toISOString() });
         },
-        { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+        { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
       );
     });
+  }
+
+  // Sufijo corto para sumar al toast, avisando si la ubicacion se tomo bien o no
+  function sufijoEstadoGps(loc){
+    if(!loc) return '';
+    if(loc.estadoGps === 'CAPTURADO') return ' 📍 Ubicación registrada.';
+    return ' ⚠️ Sin ubicación (' + loc.estadoGps.toLowerCase() + ').';
   }
 
   function mostrarToast(msg, tipo){
@@ -732,6 +739,7 @@
         estadoGps: loc.estadoGps, fechaHoraGps: loc.fechaHoraGps,
       }).then(function(){
         v.estadoGpsInicio = loc.estadoGps; // evita repetir el pedido si se vuelve a abrir esta misma pantalla
+        mostrarToast('Ubicación de inicio' + (loc.estadoGps === 'CAPTURADO' ? ' registrada correctamente 📍' : ': ' + loc.estadoGps.toLowerCase() + ' ⚠️'), loc.estadoGps === 'CAPTURADO' ? 'ok' : 'err');
       });
     });
   }
@@ -853,7 +861,7 @@
     apiGet(params)
       .then(function(res){
         if(res.ok){
-          mostrarToast(res.mensaje, 'ok');
+          mostrarToast(res.mensaje + sufijoEstadoGps(loc), 'ok');
           if(accion === 'finalizarViaje'){
             // el viaje ya no esta activo: volvemos a buscar la lista actualizada
             buscarViaje();
