@@ -682,8 +682,11 @@
   function textoDistanciaTotalGps(v){
     if(v.estadoViaje !== 'FINALIZADO') return null; // solo tiene sentido una vez finalizado
 
+    if(v.distanciaTotalRutaKm !== null && v.distanciaTotalRutaKm !== undefined && v.distanciaTotalRutaKm !== ''){
+      return { texto: 'Distancia total del viaje: ' + v.distanciaTotalRutaKm + ' km (por ruta)', color: 'var(--ink-soft)', icono: '🏁' };
+    }
     if(v.distanciaInicioFinKm !== null && v.distanciaInicioFinKm !== undefined && v.distanciaInicioFinKm !== ''){
-      return { texto: 'Distancia total del viaje (GPS): ' + v.distanciaInicioFinKm + ' km', color: 'var(--ink-soft)', icono: '🏁' };
+      return { texto: 'Distancia total del viaje: ' + v.distanciaInicioFinKm + ' km (línea recta)', color: 'var(--ink-soft)', icono: '🏁' };
     }
     var motivos = [];
     if(!v.estadoGpsInicio) motivos.push('inicio pendiente');
@@ -698,8 +701,11 @@
   function textoDistanciaGps(v){
     if(v.requiereParada !== 'SI') return null; // no aplica si el tramo no requeria parada
 
+    if(v.distanciaInicioParadaRutaKm !== null && v.distanciaInicioParadaRutaKm !== undefined && v.distanciaInicioParadaRutaKm !== ''){
+      return { texto: 'Distancia recorrida hasta la parada: ' + v.distanciaInicioParadaRutaKm + ' km (por ruta)', color: 'var(--ink-soft)', icono: '📍' };
+    }
     if(v.distanciaInicioParadaKm !== null && v.distanciaInicioParadaKm !== undefined && v.distanciaInicioParadaKm !== ''){
-      return { texto: 'Distancia recorrida hasta la parada (GPS): ' + v.distanciaInicioParadaKm + ' km', color: 'var(--ink-soft)', icono: '📍' };
+      return { texto: 'Distancia recorrida hasta la parada: ' + v.distanciaInicioParadaKm + ' km (línea recta)', color: 'var(--ink-soft)', icono: '📍' };
     }
     var motivos = [];
     if(!v.estadoGpsInicio) motivos.push('inicio pendiente');
