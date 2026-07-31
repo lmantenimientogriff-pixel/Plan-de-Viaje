@@ -698,6 +698,24 @@
   }
 
   // Texto/color para mostrar la distancia GPS entre inicio y parada, o el motivo si no hay dato
+  // Arma el link de Google Maps con el recorrido (inicio -> parada -> fin), usando los puntos
+  // que se hayan capturado con exito. Devuelve null si no hay al menos 2 puntos.
+  function urlRecorridoMapa(v){
+    var puntos = [];
+    if(v.estadoGpsInicio === 'CAPTURADO' && v.latInicio) puntos.push(v.latInicio + ',' + v.lngInicio);
+    if(v.estadoGpsParada === 'CAPTURADO' && v.latParada) puntos.push(v.latParada + ',' + v.lngParada);
+    if(v.estadoGpsFin === 'CAPTURADO' && v.latFin) puntos.push(v.latFin + ',' + v.lngFin);
+    if(puntos.length < 2) return null;
+
+    var origen = puntos[0];
+    var destino = puntos[puntos.length - 1];
+    var intermedios = puntos.slice(1, -1);
+    var url = 'https://www.google.com/maps/dir/?api=1&origin=' + encodeURIComponent(origen) +
+      '&destination=' + encodeURIComponent(destino) + '&travelmode=driving';
+    if(intermedios.length) url += '&waypoints=' + encodeURIComponent(intermedios.join('|'));
+    return url;
+  }
+
   function textoDistanciaGps(v){
     if(v.requiereParada !== 'SI') return null; // no aplica si el tramo no requeria parada
 
@@ -879,6 +897,10 @@
     if(distGps){
       html += '<div class="kv"><span class="k">' + distGps.icono + ' Ubicación</span><span class="v" style="color:' + distGps.color + ';font-size:12.5px;">' + distGps.texto + '</span></div>';
     }
+    var urlMapa = urlRecorridoMapa(v);
+    if(urlMapa){
+      html += '<a class="btn btn-ghost btn-sm" style="width:100%;margin-top:10px;" href="' + urlMapa + '" target="_blank" rel="noopener">🗺️ Ver recorrido en el mapa</a>';
+    }
     html += '<div class="kv"><span class="k">Origen</span><span class="v">' + (v.origen||'—') + '</span></div>';
     html += '<div class="kv"><span class="k">Destino</span><span class="v">' + (v.destino||'—') + '</span></div>';
     html += '<div class="kv"><span class="k">Cliente</span><span class="v">' + (v.cliente||'—') + '</span></div>';
@@ -1017,6 +1039,7 @@
       '<div class="kv"><span class="k">Parada de descanso planificada</span><span class="v">' + paradaTxt + '</span></div>' +
       (textoCumplimientoParada(v) ? '<div class="kv"><span class="k">Conducción continua</span><span class="v" style="color:' + textoCumplimientoParada(v).color + ';">' + textoCumplimientoParada(v).icono + ' ' + textoCumplimientoParada(v).texto + '</span></div>' : '') +
       (textoDistanciaGps(v) ? '<div class="kv"><span class="k">Ubicación</span><span class="v" style="color:' + textoDistanciaGps(v).color + ';font-size:12px;">' + textoDistanciaGps(v).icono + ' ' + textoDistanciaGps(v).texto + '</span></div>' : '') +
+      (urlRecorridoMapa(v) ? '<a class="btn btn-ghost btn-sm" style="width:100%;margin-top:10px;" href="' + urlRecorridoMapa(v) + '" target="_blank" rel="noopener">🗺️ Ver recorrido en el mapa</a>' : '') +
       '<div class="kv"><span class="k">Puntaje de riesgo</span><span class="v">' + v.nivelRiesgoPuntos + ' pts</span></div>' +
       '<div class="kv"><span class="k">Autoriza</span><span class="v">' + v.rolAutoriza + '</span></div>' +
       '<button class="btn btn-ghost btn-sm" style="width:100%;margin-top:12px;" onclick="document.getElementById(\'' + motivoId + '\').classList.toggle(\'show\')">Ver motivo del riesgo ▾</button>' +
@@ -1499,7 +1522,8 @@
         '<div class="kv"><span class="k">Autorización</span><span class="v" style="color:' + autorizacion.color + ';">' + autorizacion.texto + '</span></div>' +
         (textoCumplimientoParada(v) ? '<div class="kv"><span class="k">Conducción continua</span><span class="v" style="color:' + textoCumplimientoParada(v).color + ';">' + textoCumplimientoParada(v).icono + ' ' + textoCumplimientoParada(v).texto + '</span></div>' : '') +
         (textoDistanciaGps(v) ? '<div class="kv"><span class="k">Ubicación</span><span class="v" style="color:' + textoDistanciaGps(v).color + ';font-size:12px;">' + textoDistanciaGps(v).icono + ' ' + textoDistanciaGps(v).texto + '</span></div>' : '') +
-        (textoDistanciaTotalGps(v) ? '<div class="kv"><span class="k">Distancia total</span><span class="v" style="color:' + textoDistanciaTotalGps(v).color + ';font-size:12px;">' + textoDistanciaTotalGps(v).icono + ' ' + textoDistanciaTotalGps(v).texto + '</span></div>' : '');
+        (textoDistanciaTotalGps(v) ? '<div class="kv"><span class="k">Distancia total</span><span class="v" style="color:' + textoDistanciaTotalGps(v).color + ';font-size:12px;">' + textoDistanciaTotalGps(v).icono + ' ' + textoDistanciaTotalGps(v).texto + '</span></div>' : '') +
+        (urlRecorridoMapa(v) ? '<a class="btn btn-ghost btn-sm" style="width:100%;margin-top:10px;" href="' + urlRecorridoMapa(v) + '" target="_blank" rel="noopener">🗺️ Ver recorrido en el mapa</a>' : '');
 
       if(pendienteAuth){
         htmlMobile += '<div class="btn-row" style="margin-top:10px;">' +
@@ -1533,10 +1557,12 @@
       var infoParada = textoCumplimientoParada(v);
       var infoGps = textoDistanciaGps(v);
       var infoGpsTotal = textoDistanciaTotalGps(v);
+      var urlMapaDetalle = urlRecorridoMapa(v);
       var contenidoDetalle = notaSomnolencia(v) +
         (infoParada ? '<p style="margin:0 0 6px;font-size:13px;font-weight:600;color:' + infoParada.color + ';">' + infoParada.icono + ' ' + infoParada.texto + '</p>' : '') +
         (infoGps ? '<p style="margin:0 0 6px;font-size:12.5px;color:' + infoGps.color + ';">' + infoGps.icono + ' ' + infoGps.texto + '</p>' : '') +
-        (infoGpsTotal ? '<p style="margin:0 0 14px;font-size:12.5px;color:' + infoGpsTotal.color + ';">' + infoGpsTotal.icono + ' ' + infoGpsTotal.texto + '</p>' : '') +
+        (infoGpsTotal ? '<p style="margin:0 0 10px;font-size:12.5px;color:' + infoGpsTotal.color + ';">' + infoGpsTotal.icono + ' ' + infoGpsTotal.texto + '</p>' : '') +
+        (urlMapaDetalle ? '<a class="btn btn-ghost btn-sm" href="' + urlMapaDetalle + '" target="_blank" rel="noopener" style="margin-bottom:14px;display:inline-flex;">🗺️ Ver recorrido en el mapa</a>' : '') +
         '<div class="pilares-grid">' + htmlPilaresBarras(v) + '</div>';
       if(pendienteAuth){
         contenidoDetalle += '<div style="margin-top:16px;padding-top:16px;border-top:1px dashed var(--line);">' +
